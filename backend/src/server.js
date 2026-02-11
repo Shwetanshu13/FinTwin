@@ -1,9 +1,18 @@
 import express from "express";
 import cors from "cors";
 
-import { createAuthRouter } from "./controllers/auth/auth.controller.js";
 import { AuthService } from "./controllers/auth/auth.service.js";
 import { UserRepository } from "./controllers/auth/userRepo.js";
+
+import { OnboardingRepository } from "./controllers/onboarding/onboarding.repo.js";
+import { OnboardingService } from "./controllers/onboarding/onboarding.service.js";
+
+import { RecordsRepository } from "./controllers/records/records.repo.js";
+import { RecordsService } from "./controllers/records/records.service.js";
+
+import { CalcService } from "./controllers/calc/calc.service.js";
+
+import { registerRoutes } from "./routes/index.js";
 
 export function createApp() {
     const app = express();
@@ -14,8 +23,21 @@ export function createApp() {
     const userRepo = new UserRepository();
     const authService = new AuthService(userRepo);
 
-    app.get("/health", (req, res) => res.json({ ok: true }));
-    app.use("/auth", createAuthRouter({ authService, userRepo }));
+    const onboardingRepo = new OnboardingRepository();
+    const onboardingService = new OnboardingService(onboardingRepo);
+
+    const recordsRepo = new RecordsRepository();
+    const recordsService = new RecordsService(recordsRepo);
+
+    const calcService = new CalcService(recordsRepo);
+
+    registerRoutes(app, {
+        authService,
+        userRepo,
+        onboardingService,
+        recordsService,
+        calcService,
+    });
 
     return app;
 }

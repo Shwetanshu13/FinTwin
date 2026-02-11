@@ -1,1 +1,1 @@
-export const expenseTypeEnums = ["fixed", "variable", "emi"];
+export const expenseTypeEnums = ["fixed", "variable", "emi", "purchase"];
