@@ -1,9 +1,5 @@
 import { calculateFinancialProfile } from "../../engine/profile.js";
 import { calculateRunwayMonths } from "../../engine/runway.js";
-import {
-    calculateFinalSavings,
-    calculateMonthlyNetSavings,
-} from "../../engine/savings.js";
 import { emiPurchase, oneTimePurchase } from "../../engine/purchase.js";
 
 export class CalcService {
@@ -94,19 +90,10 @@ export class CalcService {
     async calculateSavingsFromDb(userId, options) {
         const profile = await this.calculateProfileFromDb(userId, options);
 
-        const finalSavings = calculateFinalSavings(
-            0,
-            profile.totalIncome,
-            profile.totalVariableExpenses + (profile.totalMonthlyExpense ? 0 : 0),
-            profile.totalVariableExpenses
-        );
-
-        const monthlyNetSavings = calculateMonthlyNetSavings(
-            profile.totalMonthlyIncome,
-            profile.totalMonthlyExpense
-        );
-
-        return { finalSavings: profile.finalSavings, monthlyNetSavings };
+        return {
+            finalSavings: profile.finalSavings,
+            monthlyNetSavings: profile.monthlyNetSavings,
+        };
     }
 
     async calculateOneTimePurchaseFromDb(userId, payload) {
