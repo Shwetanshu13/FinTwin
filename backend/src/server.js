@@ -11,6 +11,7 @@ import { RecordsRepository } from "./controllers/records/records.repo.js";
 import { RecordsService } from "./controllers/records/records.service.js";
 
 import { CalcService } from "./controllers/calc/calc.service.js";
+import { ProfileService } from "./controllers/profile/profile.service.js";
 
 import { registerRoutes } from "./routes/index.js";
 
@@ -30,6 +31,7 @@ export function createApp() {
     const recordsService = new RecordsService(recordsRepo);
 
     const calcService = new CalcService(recordsRepo);
+    const profileService = new ProfileService(userRepo);
 
     registerRoutes(app, {
         authService,
@@ -37,6 +39,7 @@ export function createApp() {
         onboardingService,
         recordsService,
         calcService,
+        profileService,
     });
 
     return app;

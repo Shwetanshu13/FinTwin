@@ -4,9 +4,9 @@ import { SafeAreaView, StyleSheet, Text, View } from "react-native";
 
 import { LoginScreen } from "./src/screens/LoginScreen";
 import { RegisterScreen } from "./src/screens/RegisterScreen";
-import { OnboardingScreen } from "./src/screens/OnboardingScreen";
 import { HomeScreen } from "./src/screens/HomeScreen";
 import { CalcScreen } from "./src/screens/CalcScreen";
+import { ProfileScreen } from "./src/screens/ProfileScreen";
 
 import { clearAuthResult, loadAuthResult, saveAuthResult } from "./src/storage/auth";
 import {
@@ -75,17 +75,16 @@ export default function App() {
       </View>
     );
   } else if (authResult) {
-    if (route === "onboarding") {
-      content = (
-        <OnboardingScreen
-          authResult={authResult}
-          onGoHome={() => setRoute("home")}
-          onLogout={onLogout}
-        />
-      );
-    } else if (route === "calc") {
+    if (route === "calc") {
       content = (
         <CalcScreen
+          authResult={authResult}
+          onGoHome={() => setRoute("home")}
+        />
+      );
+    } else if (route === "profile") {
+      content = (
+        <ProfileScreen
           authResult={authResult}
           onGoHome={() => setRoute("home")}
           onLogout={onLogout}
@@ -95,9 +94,8 @@ export default function App() {
       content = (
         <HomeScreen
           authResult={authResult}
-          onGoOnboarding={() => setRoute("onboarding")}
           onGoCalc={() => setRoute("calc")}
-          onLogout={onLogout}
+          onGoProfile={() => setRoute("profile")}
         />
       );
     }

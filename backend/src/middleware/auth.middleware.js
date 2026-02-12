@@ -8,8 +8,9 @@ export function requireAuth(userRepo) {
 
             const token = header.slice("Bearer ".length);
             const decoded = await userRepo.verifyAccessToken(token);
-            const userId = decoded?.id;
-            if (!userId) {
+            const rawUserId = decoded?.id;
+            const userId = Number(rawUserId);
+            if (!Number.isFinite(userId) || userId <= 0) {
                 return res.status(401).json({ error: "INVALID_TOKEN" });
             }
 

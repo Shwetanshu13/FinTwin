@@ -5,6 +5,11 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
 export class UserRepository {
+    _toNumericId(id) {
+        const num = Number(id);
+        return Number.isFinite(num) ? num : null;
+    }
+
     async findUserByEmail(email) {
         const existingUsers = await db.select().from(usersTable).where(eq(usersTable.email, email));
         return existingUsers[0] || null;
@@ -26,9 +31,22 @@ export class UserRepository {
     };
 
     async findById(id) {
-        const user = await db.select().from(usersTable).where(eq(usersTable.id, id));
+        const numericId = this._toNumericId(id);
+        if (!numericId) return null;
+        const user = await db.select().from(usersTable).where(eq(usersTable.id, numericId));
         return user[0] || null;
     };
+
+    async updateById(id, patch) {
+        const numericId = this._toNumericId(id);
+        if (!numericId) return null;
+        const [updated] = await db
+            .update(usersTable)
+            .set(patch)
+            .where(eq(usersTable.id, numericId))
+            .returning();
+        return updated || null;
+    }
 
     async comparePassword(plainPassword, hashedPassword) {
         return bcrypt.compare(plainPassword, hashedPassword);
