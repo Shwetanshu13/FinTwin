@@ -125,10 +125,6 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: colors.light,
-  },
   container: {
     flex: 1,
     backgroundColor: "#fff",
@@ -139,13 +135,5 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 });
-<NavigationContainer>
-  <Stack.Navigator screenOptions={{ headerShown: false }}>
-    <Stack.Screen name="Login" component={LoginScreen} />
-    <Stack.Screen name="Signup" component={SignupScreen} />
-    <Stack.Screen name="Onboarding" component={Onboarding} />
-  </Stack.Navigator>
-</NavigationContainer>
-  );
-}
+
 
