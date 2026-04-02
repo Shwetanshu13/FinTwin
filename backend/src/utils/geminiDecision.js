@@ -20,6 +20,7 @@ function buildPrompt({ kind, requestPayload, engineResult }) {
         "Output MUST be valid JSON and nothing else.",
         "Do NOT provide personalized investment advice. Keep it informational.",
         "If data is insufficient, say so clearly.",
+        "Do not use any currency symbols or abbreviations.",
         "",
         "Return JSON with this shape:",
         '{"decisionStatement": string, "keyPoints": string[]}',
@@ -35,7 +36,7 @@ function buildPrompt({ kind, requestPayload, engineResult }) {
         "- Start with 'Decision:'.",
         "- Reference affordability/runway/net savings when available.",
         "Key points requirements:",
-        "- 2 to 4 short bullets as strings.",
+        "- 2 to 4 short bullets as strings."
     ].join("\n");
 }
 
