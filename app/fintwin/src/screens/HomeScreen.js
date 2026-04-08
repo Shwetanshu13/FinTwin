@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+    ActivityIndicator,
     KeyboardAvoidingView,
     Platform,
     Pressable,
@@ -25,8 +26,10 @@ import {
     updateSaving,
 } from "../api/records";
 import { sharedStyles } from "./shared";
+import { FormField } from "../components/FormField";
+import { ListItem } from "../components/ListItem";
 
-import colors from "../../theme";
+import { colors, fontSizes, radii, shadows, spacing } from "../../theme";
 
 const EXPENSE_TYPES = ["fixed", "variable", "emi", "purchase"];
 
@@ -37,18 +40,58 @@ function toNumberOrUndefined(value) {
     return Number.isFinite(num) ? num : undefined;
 }
 
+function formatCurrency(v) {
+    return `₹${Number(v || 0).toLocaleString("en-IN")}`;
+}
+
+/* ── Inline edit action row ── */
 function RowActions({ onSave, onCancel, onDelete, saving }) {
     return (
         <View style={styles.rowActions}>
-            <Pressable style={sharedStyles.button} onPress={onSave} disabled={saving}>
-                <Text style={sharedStyles.buttonText}>{saving ? "Saving..." : "Save"}</Text>
+            <Pressable
+                style={({ pressed }) => [
+                    styles.saveBtn,
+                    pressed && { opacity: 0.85 },
+                ]}
+                onPress={onSave}
+                disabled={saving}
+            >
+                <Text style={styles.saveBtnText}>
+                    {saving ? "Saving…" : "Save"}
+                </Text>
             </Pressable>
-            <Pressable style={sharedStyles.secondaryButton} onPress={onCancel} disabled={saving}>
-                <Text style={sharedStyles.secondaryButtonText}>Cancel</Text>
-            </Pressable>
-            <Pressable style={styles.dangerButton} onPress={onDelete} disabled={saving}>
-                <Text style={styles.dangerButtonText}>Delete</Text>
-            </Pressable>
+            <View style={styles.rowActionsSecondary}>
+                <Pressable
+                    style={({ pressed }) => [
+                        styles.ghostBtn,
+                        pressed && { opacity: 0.7 },
+                    ]}
+                    onPress={onCancel}
+                    disabled={saving}
+                >
+                    <Text style={styles.ghostBtnText}>Cancel</Text>
+                </Pressable>
+                <Pressable
+                    style={({ pressed }) => [
+                        styles.dangerBtn,
+                        pressed && { opacity: 0.7 },
+                    ]}
+                    onPress={onDelete}
+                    disabled={saving}
+                >
+                    <Text style={styles.dangerBtnText}>Delete</Text>
+                </Pressable>
+            </View>
+        </View>
+    );
+}
+
+/* ── Quick summary mini card ── */
+function MiniStat({ label, value, color }) {
+    return (
+        <View style={styles.miniStat}>
+            <Text style={styles.miniStatLabel}>{label}</Text>
+            <Text style={[styles.miniStatValue, { color }]}>{value}</Text>
         </View>
     );
 }
@@ -65,6 +108,10 @@ export function HomeScreen({ authResult, onGoCalc, onGoProfile }) {
     const [newExpense, setNewExpense] = useState({ title: "", amount: "", type: "fixed", startDate: "", endDate: "" });
     const [newSaving, setNewSaving] = useState({ title: "", amount: "", creditDate: "" });
 
+    const [showAddIncome, setShowAddIncome] = useState(false);
+    const [showAddExpense, setShowAddExpense] = useState(false);
+    const [showAddSaving, setShowAddSaving] = useState(false);
+
     const [editing, setEditing] = useState(null);
     const [editDraft, setEditDraft] = useState({});
     const [savingEdit, setSavingEdit] = useState(false);
@@ -72,6 +119,20 @@ export function HomeScreen({ authResult, onGoCalc, onGoProfile }) {
     const canLoad = useMemo(
         () => Boolean(authResult?.token?.accessToken),
         [authResult?.token?.accessToken]
+    );
+
+    /* ── Computed summaries ── */
+    const totalIncome = useMemo(
+        () => income.reduce((s, i) => s + (Number(i.amount) || 0), 0),
+        [income]
+    );
+    const totalExpenses = useMemo(
+        () => expenses.reduce((s, e) => s + (Number(e.amount) || 0), 0),
+        [expenses]
+    );
+    const totalSavings = useMemo(
+        () => savings.reduce((s, sv) => s + (Number(sv.amount) || 0), 0),
+        [savings]
     );
 
     async function loadAll() {
@@ -192,6 +253,7 @@ export function HomeScreen({ authResult, onGoCalc, onGoProfile }) {
             const res = await createIncome(payload);
             if (res?.income) setIncome((prev) => [res.income, ...prev]);
             setNewIncome({ title: "", amount: "", startDate: "", endDate: "" });
+            setShowAddIncome(false);
         } catch (e) {
             setError(e?.message || "REQUEST_FAILED");
         }
@@ -210,6 +272,7 @@ export function HomeScreen({ authResult, onGoCalc, onGoProfile }) {
             const res = await createExpense(payload);
             if (res?.expense) setExpenses((prev) => [res.expense, ...prev]);
             setNewExpense({ title: "", amount: "", type: "fixed", startDate: "", endDate: "" });
+            setShowAddExpense(false);
         } catch (e) {
             setError(e?.message || "REQUEST_FAILED");
         }
@@ -226,6 +289,7 @@ export function HomeScreen({ authResult, onGoCalc, onGoProfile }) {
             const res = await createSaving(payload);
             if (res?.saving) setSavings((prev) => [res.saving, ...prev]);
             setNewSaving({ title: "", amount: "", creditDate: "" });
+            setShowAddSaving(false);
         } catch (e) {
             setError(e?.message || "REQUEST_FAILED");
         }
@@ -246,201 +310,144 @@ export function HomeScreen({ authResult, onGoCalc, onGoProfile }) {
                 keyboardDismissMode="on-drag"
                 contentInsetAdjustmentBehavior="always"
             >
+                {/* ── Header ── */}
                 <View style={styles.header}>
-                    <Text style={styles.title}>Home</Text>
-                    <Text style={styles.subtitle}>Signed in as {signedInAs}</Text>
-                    <Text style={styles.subtitle}>Manage your income, expenses, and savings.</Text>
+                    <Text style={styles.greeting}>
+                        Hello, {signedInAs?.split(" ")[0] || "there"} 👋
+                    </Text>
+                    <Text style={styles.title}>FinTwin</Text>
                 </View>
 
                 {error ? <Text style={sharedStyles.error}>{error}</Text> : null}
-                {loading ? <Text style={styles.subtitle}>Loading...</Text> : null}
+                {loading ? (
+                    <ActivityIndicator
+                        size="small"
+                        color={colors.primary}
+                        style={{ marginVertical: spacing.lg }}
+                    />
+                ) : null}
 
-                <View style={styles.topActions}>
-                    <Pressable
-                        style={[sharedStyles.secondaryButton, styles.actionButton]}
-                        onPress={onGoCalc}
-                        disabled={loading}
-                    >
-                        <Text style={sharedStyles.secondaryButtonText}>Calculations</Text>
-                    </Pressable>
-                    <Pressable
-                        style={[sharedStyles.secondaryButton, styles.actionButton]}
-                        onPress={onGoProfile}
-                        disabled={loading}
-                    >
-                        <Text style={sharedStyles.secondaryButtonText}>Profile</Text>
-                    </Pressable>
+                {/* ── Quick Summary ── */}
+                <View style={styles.summaryRow}>
+                    <MiniStat
+                        label="Income"
+                        value={formatCurrency(totalIncome)}
+                        color={colors.positive}
+                    />
+                    <MiniStat
+                        label="Expenses"
+                        value={formatCurrency(totalExpenses)}
+                        color={colors.negative}
+                    />
+                    <MiniStat
+                        label="Savings"
+                        value={formatCurrency(totalSavings)}
+                        color={colors.primary}
+                    />
                 </View>
 
-                <Text style={sharedStyles.sectionTitle}>Income</Text>
-                <View style={styles.card}>
-                    <Text style={styles.cardTitle}>Add income</Text>
-                    <TextInput
-                        value={newIncome.title}
-                        onChangeText={(v) => setNewIncome((p) => ({ ...p, title: v }))}
-                        placeholder="Title"
-                        style={sharedStyles.input}
-                    />
-                    <TextInput
-                        value={newIncome.amount}
-                        onChangeText={(v) => setNewIncome((p) => ({ ...p, amount: v }))}
-                        placeholder="Amount"
-                        keyboardType="numeric"
-                        style={sharedStyles.input}
-                    />
-                    <TextInput
-                        value={newIncome.startDate}
-                        onChangeText={(v) => setNewIncome((p) => ({ ...p, startDate: v }))}
-                        placeholder="Start date (YYYY-MM-DD)"
-                        autoCapitalize="none"
-                        style={sharedStyles.input}
-                    />
-                    <TextInput
-                        value={newIncome.endDate}
-                        onChangeText={(v) => setNewIncome((p) => ({ ...p, endDate: v }))}
-                        placeholder="End date (optional)"
-                        autoCapitalize="none"
-                        style={sharedStyles.input}
-                    />
-                    <Pressable style={sharedStyles.button} onPress={addIncome}>
-                        <Text style={sharedStyles.buttonText}>Add income</Text>
+                {/* ══════════ INCOME SECTION ══════════ */}
+                <View style={styles.sectionHeader}>
+                    <Text style={sharedStyles.sectionTitle}>Income</Text>
+                    <Pressable
+                        style={styles.addPill}
+                        onPress={() => setShowAddIncome(!showAddIncome)}
+                    >
+                        <Text style={styles.addPillText}>
+                            {showAddIncome ? "✕" : "+ Add"}
+                        </Text>
                     </Pressable>
                 </View>
-
-                {income.map((item) => {
-                    const isEditing = editing?.kind === "income" && editing?.id === item.id;
-                    return (
-                        <View key={`income-${item.id}`} style={styles.card}>
-                            {isEditing ? (
-                                <>
-                                    <Text style={styles.cardTitle}>Edit income</Text>
-                                    <TextInput
-                                        value={String(editDraft.title ?? "")}
-                                        onChangeText={(v) => setEditDraft((p) => ({ ...p, title: v }))}
-                                        placeholder="Title"
-                                        style={sharedStyles.input}
-                                        editable={!savingEdit}
-                                    />
-                                    <TextInput
-                                        value={String(editDraft.amount ?? "")}
-                                        onChangeText={(v) => setEditDraft((p) => ({ ...p, amount: v }))}
-                                        placeholder="Amount"
-                                        keyboardType="numeric"
-                                        style={sharedStyles.input}
-                                        editable={!savingEdit}
-                                    />
-                                    <TextInput
-                                        value={String(editDraft.startDate ?? "")}
-                                        onChangeText={(v) => setEditDraft((p) => ({ ...p, startDate: v }))}
-                                        placeholder="Start date"
-                                        autoCapitalize="none"
-                                        style={sharedStyles.input}
-                                        editable={!savingEdit}
-                                    />
-                                    <TextInput
-                                        value={editDraft.endDate == null ? "" : String(editDraft.endDate)}
-                                        onChangeText={(v) => setEditDraft((p) => ({ ...p, endDate: v }))}
-                                        placeholder="End date (optional)"
-                                        autoCapitalize="none"
-                                        style={sharedStyles.input}
-                                        editable={!savingEdit}
-                                    />
-                                    <RowActions
-                                        saving={savingEdit}
-                                        onSave={saveEdit}
-                                        onCancel={cancelEdit}
-                                        onDelete={removeEditing}
-                                    />
-                                </>
-                            ) : (
-                                <>
-                                    <Text style={styles.itemTitle}>{item.title}</Text>
-                                    <Text style={styles.itemMeta}>Amount: {item.amount}</Text>
-                                    <Text style={styles.itemMeta}>
-                                        {item.startDate} → {item.endDate || "(no end)"}
-                                    </Text>
-                                    <Pressable
-                                        style={[sharedStyles.secondaryButton, styles.secondaryInCard]}
-                                        onPress={() => startEdit("income", item)}
-                                    >
-                                        <Text style={sharedStyles.secondaryButtonText}>Edit</Text>
-                                    </Pressable>
-                                </>
-                            )}
-                        </View>
-                    );
-                })}
-
-                <Text style={sharedStyles.sectionTitle}>Expenses</Text>
                 <View style={styles.card}>
-                    <Text style={styles.cardTitle}>Add expense</Text>
-                    <TextInput
-                        value={newExpense.title}
-                        onChangeText={(v) => setNewExpense((p) => ({ ...p, title: v }))}
-                        placeholder="Title"
-                        style={sharedStyles.input}
-                    />
-                    <TextInput
-                        value={newExpense.amount}
-                        onChangeText={(v) => setNewExpense((p) => ({ ...p, amount: v }))}
-                        placeholder="Amount"
-                        keyboardType="numeric"
-                        style={sharedStyles.input}
-                    />
-                    <Text style={sharedStyles.hint}>Type</Text>
-                    <View style={sharedStyles.row}>
-                        {EXPENSE_TYPES.map((t) => (
-                            <Pressable
-                                key={`new-exp-${t}`}
-                                onPress={() => setNewExpense((p) => ({ ...p, type: t }))}
-                                style={[sharedStyles.chip, newExpense.type === t ? sharedStyles.chipActive : null]}
-                            >
-                                <Text style={sharedStyles.chipText}>{t}</Text>
+                    {showAddIncome && (
+                        <View style={styles.addForm}>
+                            <FormField label="Title" value={newIncome.title} onChangeText={(v) => setNewIncome((p) => ({ ...p, title: v }))} placeholder="e.g. Salary" />
+                            <FormField label="Amount" value={newIncome.amount} onChangeText={(v) => setNewIncome((p) => ({ ...p, amount: v }))} placeholder="e.g. 50000" keyboardType="numeric" />
+                            <FormField label="Start Date" value={newIncome.startDate} onChangeText={(v) => setNewIncome((p) => ({ ...p, startDate: v }))} placeholder="YYYY-MM-DD" autoCapitalize="none" />
+                            <FormField label="End Date (optional)" value={newIncome.endDate} onChangeText={(v) => setNewIncome((p) => ({ ...p, endDate: v }))} placeholder="YYYY-MM-DD" autoCapitalize="none" />
+                            <Pressable style={({ pressed }) => [sharedStyles.button, pressed && { opacity: 0.85 }]} onPress={addIncome}>
+                                <Text style={sharedStyles.buttonText}>Add Income</Text>
                             </Pressable>
-                        ))}
-                    </View>
-                    <TextInput
-                        value={newExpense.startDate}
-                        onChangeText={(v) => setNewExpense((p) => ({ ...p, startDate: v }))}
-                        placeholder="Start date (YYYY-MM-DD)"
-                        autoCapitalize="none"
-                        style={sharedStyles.input}
-                    />
-                    <TextInput
-                        value={newExpense.endDate}
-                        onChangeText={(v) => setNewExpense((p) => ({ ...p, endDate: v }))}
-                        placeholder="End date (optional)"
-                        autoCapitalize="none"
-                        style={sharedStyles.input}
-                    />
-                    <Pressable style={sharedStyles.button} onPress={addExpense}>
-                        <Text style={sharedStyles.buttonText}>Add expense</Text>
-                    </Pressable>
+                        </View>
+                    )}
+                    {income.length === 0 && !showAddIncome ? (
+                        <Text style={styles.emptyText}>No income entries yet</Text>
+                    ) : null}
+                    {income.map((item) => {
+                        const isEditing = editing?.kind === "income" && editing?.id === item.id;
+                        if (isEditing) {
+                            return (
+                                <View key={`income-${item.id}`} style={styles.editCard}>
+                                    <Text style={styles.editTitle}>Edit Income</Text>
+                                    <FormField label="Title" value={String(editDraft.title ?? "")} onChangeText={(v) => setEditDraft((p) => ({ ...p, title: v }))} placeholder="Title" editable={!savingEdit} />
+                                    <FormField label="Amount" value={String(editDraft.amount ?? "")} onChangeText={(v) => setEditDraft((p) => ({ ...p, amount: v }))} placeholder="Amount" keyboardType="numeric" editable={!savingEdit} />
+                                    <FormField label="Start Date" value={String(editDraft.startDate ?? "")} onChangeText={(v) => setEditDraft((p) => ({ ...p, startDate: v }))} placeholder="Start date" autoCapitalize="none" editable={!savingEdit} />
+                                    <FormField label="End Date" value={editDraft.endDate == null ? "" : String(editDraft.endDate)} onChangeText={(v) => setEditDraft((p) => ({ ...p, endDate: v }))} placeholder="End date (optional)" autoCapitalize="none" editable={!savingEdit} />
+                                    <RowActions saving={savingEdit} onSave={saveEdit} onCancel={cancelEdit} onDelete={removeEditing} />
+                                </View>
+                            );
+                        }
+                        return (
+                            <ListItem
+                                key={`income-${item.id}`}
+                                title={item.title}
+                                subtitle={`${item.startDate} → ${item.endDate || "ongoing"}`}
+                                amount={item.amount}
+                                category="income"
+                                onPress={() => startEdit("income", item)}
+                            />
+                        );
+                    })}
                 </View>
 
-                {expenses.map((item) => {
-                    const isEditing = editing?.kind === "expenses" && editing?.id === item.id;
-                    return (
-                        <View key={`expense-${item.id}`} style={styles.card}>
-                            {isEditing ? (
-                                <>
-                                    <Text style={styles.cardTitle}>Edit expense</Text>
-                                    <TextInput
-                                        value={String(editDraft.title ?? "")}
-                                        onChangeText={(v) => setEditDraft((p) => ({ ...p, title: v }))}
-                                        placeholder="Title"
-                                        style={sharedStyles.input}
-                                        editable={!savingEdit}
-                                    />
-                                    <TextInput
-                                        value={String(editDraft.amount ?? "")}
-                                        onChangeText={(v) => setEditDraft((p) => ({ ...p, amount: v }))}
-                                        placeholder="Amount"
-                                        keyboardType="numeric"
-                                        style={sharedStyles.input}
-                                        editable={!savingEdit}
-                                    />
-                                    <Text style={sharedStyles.hint}>Type</Text>
+                {/* ══════════ EXPENSES SECTION ══════════ */}
+                <View style={styles.sectionHeader}>
+                    <Text style={sharedStyles.sectionTitle}>Expenses</Text>
+                    <Pressable
+                        style={styles.addPill}
+                        onPress={() => setShowAddExpense(!showAddExpense)}
+                    >
+                        <Text style={styles.addPillText}>
+                            {showAddExpense ? "✕" : "+ Add"}
+                        </Text>
+                    </Pressable>
+                </View>
+                <View style={styles.card}>
+                    {showAddExpense && (
+                        <View style={styles.addForm}>
+                            <FormField label="Title" value={newExpense.title} onChangeText={(v) => setNewExpense((p) => ({ ...p, title: v }))} placeholder="e.g. Rent" />
+                            <FormField label="Amount" value={newExpense.amount} onChangeText={(v) => setNewExpense((p) => ({ ...p, amount: v }))} placeholder="e.g. 15000" keyboardType="numeric" />
+                            <Text style={styles.chipLabel}>TYPE</Text>
+                            <View style={sharedStyles.row}>
+                                {EXPENSE_TYPES.map((t) => (
+                                    <Pressable
+                                        key={`new-exp-${t}`}
+                                        onPress={() => setNewExpense((p) => ({ ...p, type: t }))}
+                                        style={[sharedStyles.chip, newExpense.type === t ? sharedStyles.chipActive : null]}
+                                    >
+                                        <Text style={sharedStyles.chipText}>{t}</Text>
+                                    </Pressable>
+                                ))}
+                            </View>
+                            <FormField label="Start Date" value={newExpense.startDate} onChangeText={(v) => setNewExpense((p) => ({ ...p, startDate: v }))} placeholder="YYYY-MM-DD" autoCapitalize="none" />
+                            <FormField label="End Date (optional)" value={newExpense.endDate} onChangeText={(v) => setNewExpense((p) => ({ ...p, endDate: v }))} placeholder="YYYY-MM-DD" autoCapitalize="none" />
+                            <Pressable style={({ pressed }) => [sharedStyles.button, pressed && { opacity: 0.85 }]} onPress={addExpense}>
+                                <Text style={sharedStyles.buttonText}>Add Expense</Text>
+                            </Pressable>
+                        </View>
+                    )}
+                    {expenses.length === 0 && !showAddExpense ? (
+                        <Text style={styles.emptyText}>No expense entries yet</Text>
+                    ) : null}
+                    {expenses.map((item) => {
+                        const isEditing = editing?.kind === "expenses" && editing?.id === item.id;
+                        if (isEditing) {
+                            return (
+                                <View key={`expense-${item.id}`} style={styles.editCard}>
+                                    <Text style={styles.editTitle}>Edit Expense</Text>
+                                    <FormField label="Title" value={String(editDraft.title ?? "")} onChangeText={(v) => setEditDraft((p) => ({ ...p, title: v }))} placeholder="Title" editable={!savingEdit} />
+                                    <FormField label="Amount" value={String(editDraft.amount ?? "")} onChangeText={(v) => setEditDraft((p) => ({ ...p, amount: v }))} placeholder="Amount" keyboardType="numeric" editable={!savingEdit} />
+                                    <Text style={styles.chipLabel}>TYPE</Text>
                                     <View style={sharedStyles.row}>
                                         {EXPENSE_TYPES.map((t) => (
                                             <Pressable
@@ -453,130 +460,77 @@ export function HomeScreen({ authResult, onGoCalc, onGoProfile }) {
                                             </Pressable>
                                         ))}
                                     </View>
-                                    <TextInput
-                                        value={String(editDraft.startDate ?? "")}
-                                        onChangeText={(v) => setEditDraft((p) => ({ ...p, startDate: v }))}
-                                        placeholder="Start date"
-                                        autoCapitalize="none"
-                                        style={sharedStyles.input}
-                                        editable={!savingEdit}
-                                    />
-                                    <TextInput
-                                        value={editDraft.endDate == null ? "" : String(editDraft.endDate)}
-                                        onChangeText={(v) => setEditDraft((p) => ({ ...p, endDate: v }))}
-                                        placeholder="End date (optional)"
-                                        autoCapitalize="none"
-                                        style={sharedStyles.input}
-                                        editable={!savingEdit}
-                                    />
-                                    <RowActions
-                                        saving={savingEdit}
-                                        onSave={saveEdit}
-                                        onCancel={cancelEdit}
-                                        onDelete={removeEditing}
-                                    />
-                                </>
-                            ) : (
-                                <>
-                                    <Text style={styles.itemTitle}>{item.title}</Text>
-                                    <Text style={styles.itemMeta}>Amount: {item.amount}</Text>
-                                    <Text style={styles.itemMeta}>Type: {item.type}</Text>
-                                    <Text style={styles.itemMeta}>
-                                        {item.startDate} → {item.endDate || "(no end)"}
-                                    </Text>
-                                    <Pressable
-                                        style={[sharedStyles.secondaryButton, styles.secondaryInCard]}
-                                        onPress={() => startEdit("expenses", item)}
-                                    >
-                                        <Text style={sharedStyles.secondaryButtonText}>Edit</Text>
-                                    </Pressable>
-                                </>
-                            )}
-                        </View>
-                    );
-                })}
-
-                <Text style={sharedStyles.sectionTitle}>Savings</Text>
-                <View style={styles.card}>
-                    <Text style={styles.cardTitle}>Add saving</Text>
-                    <TextInput
-                        value={newSaving.title}
-                        onChangeText={(v) => setNewSaving((p) => ({ ...p, title: v }))}
-                        placeholder="Title"
-                        style={sharedStyles.input}
-                    />
-                    <TextInput
-                        value={newSaving.amount}
-                        onChangeText={(v) => setNewSaving((p) => ({ ...p, amount: v }))}
-                        placeholder="Amount"
-                        keyboardType="numeric"
-                        style={sharedStyles.input}
-                    />
-                    <TextInput
-                        value={newSaving.creditDate}
-                        onChangeText={(v) => setNewSaving((p) => ({ ...p, creditDate: v }))}
-                        placeholder="Credit date (YYYY-MM-DD)"
-                        autoCapitalize="none"
-                        style={sharedStyles.input}
-                    />
-                    <Pressable style={sharedStyles.button} onPress={addSaving}>
-                        <Text style={sharedStyles.buttonText}>Add saving</Text>
-                    </Pressable>
+                                    <FormField label="Start Date" value={String(editDraft.startDate ?? "")} onChangeText={(v) => setEditDraft((p) => ({ ...p, startDate: v }))} placeholder="Start date" autoCapitalize="none" editable={!savingEdit} />
+                                    <FormField label="End Date" value={editDraft.endDate == null ? "" : String(editDraft.endDate)} onChangeText={(v) => setEditDraft((p) => ({ ...p, endDate: v }))} placeholder="End date (optional)" autoCapitalize="none" editable={!savingEdit} />
+                                    <RowActions saving={savingEdit} onSave={saveEdit} onCancel={cancelEdit} onDelete={removeEditing} />
+                                </View>
+                            );
+                        }
+                        return (
+                            <ListItem
+                                key={`expense-${item.id}`}
+                                title={item.title}
+                                subtitle={`${item.type} · ${item.startDate} → ${item.endDate || "ongoing"}`}
+                                amount={item.amount}
+                                category="expense"
+                                type={item.type}
+                                onPress={() => startEdit("expenses", item)}
+                            />
+                        );
+                    })}
                 </View>
 
-                {savings.map((item) => {
-                    const isEditing = editing?.kind === "savings" && editing?.id === item.id;
-                    return (
-                        <View key={`saving-${item.id}`} style={styles.card}>
-                            {isEditing ? (
-                                <>
-                                    <Text style={styles.cardTitle}>Edit saving</Text>
-                                    <TextInput
-                                        value={String(editDraft.title ?? "")}
-                                        onChangeText={(v) => setEditDraft((p) => ({ ...p, title: v }))}
-                                        placeholder="Title"
-                                        style={sharedStyles.input}
-                                        editable={!savingEdit}
-                                    />
-                                    <TextInput
-                                        value={String(editDraft.amount ?? "")}
-                                        onChangeText={(v) => setEditDraft((p) => ({ ...p, amount: v }))}
-                                        placeholder="Amount"
-                                        keyboardType="numeric"
-                                        style={sharedStyles.input}
-                                        editable={!savingEdit}
-                                    />
-                                    <TextInput
-                                        value={String(editDraft.creditDate ?? "")}
-                                        onChangeText={(v) => setEditDraft((p) => ({ ...p, creditDate: v }))}
-                                        placeholder="Credit date"
-                                        autoCapitalize="none"
-                                        style={sharedStyles.input}
-                                        editable={!savingEdit}
-                                    />
-                                    <RowActions
-                                        saving={savingEdit}
-                                        onSave={saveEdit}
-                                        onCancel={cancelEdit}
-                                        onDelete={removeEditing}
-                                    />
-                                </>
-                            ) : (
-                                <>
-                                    <Text style={styles.itemTitle}>{item.title}</Text>
-                                    <Text style={styles.itemMeta}>Amount: {item.amount}</Text>
-                                    <Text style={styles.itemMeta}>Credit: {item.creditDate}</Text>
-                                    <Pressable
-                                        style={[sharedStyles.secondaryButton, styles.secondaryInCard]}
-                                        onPress={() => startEdit("savings", item)}
-                                    >
-                                        <Text style={sharedStyles.secondaryButtonText}>Edit</Text>
-                                    </Pressable>
-                                </>
-                            )}
+                {/* ══════════ SAVINGS SECTION ══════════ */}
+                <View style={styles.sectionHeader}>
+                    <Text style={sharedStyles.sectionTitle}>Savings</Text>
+                    <Pressable
+                        style={styles.addPill}
+                        onPress={() => setShowAddSaving(!showAddSaving)}
+                    >
+                        <Text style={styles.addPillText}>
+                            {showAddSaving ? "✕" : "+ Add"}
+                        </Text>
+                    </Pressable>
+                </View>
+                <View style={styles.card}>
+                    {showAddSaving && (
+                        <View style={styles.addForm}>
+                            <FormField label="Title" value={newSaving.title} onChangeText={(v) => setNewSaving((p) => ({ ...p, title: v }))} placeholder="e.g. Emergency Fund" />
+                            <FormField label="Amount" value={newSaving.amount} onChangeText={(v) => setNewSaving((p) => ({ ...p, amount: v }))} placeholder="e.g. 100000" keyboardType="numeric" />
+                            <FormField label="Credit Date" value={newSaving.creditDate} onChangeText={(v) => setNewSaving((p) => ({ ...p, creditDate: v }))} placeholder="YYYY-MM-DD" autoCapitalize="none" />
+                            <Pressable style={({ pressed }) => [sharedStyles.button, pressed && { opacity: 0.85 }]} onPress={addSaving}>
+                                <Text style={sharedStyles.buttonText}>Add Saving</Text>
+                            </Pressable>
                         </View>
-                    );
-                })}
+                    )}
+                    {savings.length === 0 && !showAddSaving ? (
+                        <Text style={styles.emptyText}>No savings entries yet</Text>
+                    ) : null}
+                    {savings.map((item) => {
+                        const isEditing = editing?.kind === "savings" && editing?.id === item.id;
+                        if (isEditing) {
+                            return (
+                                <View key={`saving-${item.id}`} style={styles.editCard}>
+                                    <Text style={styles.editTitle}>Edit Saving</Text>
+                                    <FormField label="Title" value={String(editDraft.title ?? "")} onChangeText={(v) => setEditDraft((p) => ({ ...p, title: v }))} placeholder="Title" editable={!savingEdit} />
+                                    <FormField label="Amount" value={String(editDraft.amount ?? "")} onChangeText={(v) => setEditDraft((p) => ({ ...p, amount: v }))} placeholder="Amount" keyboardType="numeric" editable={!savingEdit} />
+                                    <FormField label="Credit Date" value={String(editDraft.creditDate ?? "")} onChangeText={(v) => setEditDraft((p) => ({ ...p, creditDate: v }))} placeholder="Credit date" autoCapitalize="none" editable={!savingEdit} />
+                                    <RowActions saving={savingEdit} onSave={saveEdit} onCancel={cancelEdit} onDelete={removeEditing} />
+                                </View>
+                            );
+                        }
+                        return (
+                            <ListItem
+                                key={`saving-${item.id}`}
+                                title={item.title}
+                                subtitle={`Credit: ${item.creditDate}`}
+                                amount={item.amount}
+                                category="saving"
+                                onPress={() => startEdit("savings", item)}
+                            />
+                        );
+                    })}
+                </View>
             </ScrollView>
         </KeyboardAvoidingView>
     );
@@ -584,87 +538,172 @@ export function HomeScreen({ authResult, onGoCalc, onGoProfile }) {
 
 const styles = StyleSheet.create({
     scroll: {
-        backgroundColor: colors.light,
+        marginTop: 20,
+        backgroundColor: colors.background,
     },
     container: {
-        padding: 20,
-        paddingBottom: 32,
-        gap: 12,
-        backgroundColor: colors.light,
+        padding: spacing.xxl,
+        paddingBottom: spacing.xxxl + 16,
+        gap: spacing.md,
+        backgroundColor: colors.background,
     },
     header: {
-        gap: 4,
-        marginBottom: 4,
+        gap: spacing.xs,
+        marginBottom: spacing.sm,
+    },
+    greeting: {
+        fontSize: fontSizes.md,
+        color: colors.textSecondary,
+        fontWeight: "500",
     },
     title: {
-        fontSize: 28,
-        fontWeight: "800",
-        color: colors.dark,
+        fontSize: fontSizes.xxl + 4,
+        fontWeight: "900",
+        color: colors.textPrimary,
+        letterSpacing: -0.8,
     },
     subtitle: {
-        color: "rgba(34, 40, 49, 0.72)",
+        fontSize: fontSizes.sm,
+        color: colors.textTertiary,
     },
-    topActions: {
+
+    /* Summary row */
+    summaryRow: {
         flexDirection: "row",
-        flexWrap: "wrap",
-        gap: 8,
-        marginBottom: 6,
+        gap: spacing.sm,
+        marginBottom: spacing.sm,
     },
-    actionButton: {
-        paddingHorizontal: 14,
-        paddingVertical: 10,
-        borderRadius: 999,
-        borderColor: "rgba(34, 40, 49, 0.18)",
-    },
-    card: {
-        borderWidth: 1,
-        borderColor: "rgba(34, 40, 49, 0.12)",
-        borderRadius: 16,
-        padding: 14,
-        gap: 10,
-        backgroundColor: colors.white,
-        ...Platform.select({
-            ios: {
-                shadowColor: "#000",
-                shadowOpacity: 0.05,
-                shadowRadius: 10,
-                shadowOffset: { width: 0, height: 4 },
-            },
-            android: {
-                elevation: 1,
-            },
-        }),
-    },
-    cardTitle: {
-        fontSize: 14,
-        fontWeight: "700",
-        color: colors.slate,
-    },
-    secondaryInCard: {
-        paddingVertical: 10,
-    },
-    itemTitle: {
-        fontSize: 16,
-        fontWeight: "800",
-        color: colors.dark,
-    },
-    itemMeta: {
-        color: "rgba(34, 40, 49, 0.72)",
-    },
-    rowActions: {
-        gap: 8,
-    },
-    dangerButton: {
-        borderWidth: 1,
-        borderColor: "#b00020",
-        paddingVertical: 12,
-        borderRadius: 12,
+    miniStat: {
+        flex: 1,
+        backgroundColor: colors.surface,
+        borderRadius: radii.lg,
+        padding: spacing.md,
         alignItems: "center",
-        backgroundColor: "transparent",
+        ...shadows.card,
     },
-    dangerButtonText: {
-        color: "#b00020",
-        fontSize: 16,
+    miniStatLabel: {
+        fontSize: fontSizes.xs,
+        fontWeight: "700",
+        color: colors.textTertiary,
+        textTransform: "uppercase",
+        letterSpacing: 0.8,
+        marginBottom: spacing.xs,
+    },
+    miniStatValue: {
+        fontSize: fontSizes.md,
+        fontWeight: "800",
+    },
+
+    /* Section header with add button */
+    sectionHeader: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginTop: spacing.sm,
+    },
+    addPill: {
+        backgroundColor: colors.primaryLight,
+        paddingVertical: spacing.xs + 2,
+        paddingHorizontal: spacing.md,
+        borderRadius: radii.pill,
+    },
+    addPillText: {
+        fontSize: fontSizes.xs,
+        fontWeight: "700",
+        color: colors.primary,
+    },
+
+    /* Card wrapper */
+    card: {
+        backgroundColor: colors.surface,
+        borderRadius: radii.lg,
+        overflow: "hidden",
+        ...shadows.card,
+    },
+
+    /* Add form inside card */
+    addForm: {
+        padding: spacing.lg,
+        gap: spacing.md,
+        borderBottomWidth: 1,
+        borderBottomColor: colors.divider,
+    },
+
+    /* Edit state */
+    editCard: {
+        padding: spacing.lg,
+        gap: spacing.md,
+        borderBottomWidth: 1,
+        borderBottomColor: colors.divider,
+        backgroundColor: colors.inputBg,
+    },
+    editTitle: {
+        fontSize: fontSizes.sm,
+        fontWeight: "800",
+        color: colors.textPrimary,
+        textTransform: "uppercase",
+        letterSpacing: 0.5,
+    },
+    chipLabel: {
+        fontSize: fontSizes.xs,
+        fontWeight: "700",
+        color: colors.textSecondary,
+        textTransform: "uppercase",
+        letterSpacing: 1,
+    },
+
+    /* Empty state */
+    emptyText: {
+        fontSize: fontSizes.sm,
+        color: colors.textTertiary,
+        textAlign: "center",
+        paddingVertical: spacing.xxl,
+    },
+
+    /* Row actions */
+    rowActions: {
+        gap: spacing.sm,
+    },
+    saveBtn: {
+        backgroundColor: colors.primary,
+        paddingVertical: 13,
+        borderRadius: radii.md,
+        alignItems: "center",
+    },
+    saveBtnText: {
+        color: colors.white,
+        fontSize: fontSizes.md,
+        fontWeight: "700",
+    },
+    rowActionsSecondary: {
+        flexDirection: "row",
+        gap: spacing.sm,
+    },
+    ghostBtn: {
+        flex: 1,
+        paddingVertical: 12,
+        borderRadius: radii.md,
+        alignItems: "center",
+        borderWidth: 1.5,
+        borderColor: colors.border,
+    },
+    ghostBtnText: {
+        color: colors.textSecondary,
+        fontSize: fontSizes.sm,
         fontWeight: "600",
+    },
+    dangerBtn: {
+        flex: 1,
+        paddingVertical: 12,
+        borderRadius: radii.md,
+        alignItems: "center",
+        backgroundColor: colors.negativeLt,
+        borderWidth: 1.5,
+        borderColor: colors.negative,
+    },
+    dangerBtnText: {
+        color: colors.negative,
+        fontSize: fontSizes.sm,
+        fontWeight: "700",
     },
 });

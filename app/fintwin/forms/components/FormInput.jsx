@@ -1,5 +1,5 @@
 import { View, Text, TextInput, StyleSheet } from "react-native";
-import { colors } from "../../theme";
+import { colors, fontSizes, radii, spacing } from "../../theme";
 
 export default function FormInput({ label, value, onChange, placeholder, keyboardType = "numeric", secureTextEntry = false }) {
   return (
@@ -12,7 +12,7 @@ export default function FormInput({ label, value, onChange, placeholder, keyboar
         keyboardType={keyboardType}
         secureTextEntry={secureTextEntry}
         style={styles.input}
-        placeholderTextColor={colors.slate}
+        placeholderTextColor={colors.textTertiary}
       />
     </View>
   );
@@ -21,17 +21,20 @@ export default function FormInput({ label, value, onChange, placeholder, keyboar
 const styles = StyleSheet.create({
   container: { marginBottom: 14 },
   label: {
-    fontWeight: "600",
+    fontWeight: "700",
     marginBottom: 6,
-    color: colors.dark,
-    fontSize: 13,
+    color: colors.textSecondary,
+    fontSize: fontSizes.xs,
+    textTransform: "uppercase",
+    letterSpacing: 1,
   },
   input: {
-    borderWidth: 1,
-    borderColor: colors.slate,
-    padding: 12,
-    borderRadius: 12,
-    backgroundColor: colors.light,
-    color: colors.dark,
+    backgroundColor: colors.inputBg,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: 14,
+    borderRadius: radii.md,
+    color: colors.textPrimary,
+    fontSize: fontSizes.md,
+    borderWidth: 0,
   },
 });

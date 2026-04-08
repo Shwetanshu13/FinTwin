@@ -1,5 +1,5 @@
 import { View, Text, StyleSheet } from "react-native";
-import { colors } from "../../theme";
+import { colors, fontSizes, radii, shadows, spacing } from "../../theme";
 import { useState } from "react";
 import FormInput from "../components/FormInput";
 import PrimaryButton from "../components/PrimaryButton";
@@ -30,23 +30,20 @@ export default function IncomeChangeForm({ type }) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.light,
-    padding: 16,
-    borderRadius: 16,
-    shadowColor: colors.dark,
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 2,
-    gap: 4,
+    backgroundColor: colors.surface,
+    padding: spacing.xl,
+    borderRadius: radii.lg,
+    gap: spacing.xs,
+    ...shadows.card,
   },
   title: {
-    fontSize: 16,
+    fontSize: fontSizes.lg,
     fontWeight: "700",
-    color: colors.dark,
+    color: colors.textPrimary,
   },
   subtitle: {
-    fontSize: 12,
-    color: colors.slate,
-    marginBottom: 8,
+    fontSize: fontSizes.xs,
+    color: colors.textSecondary,
+    marginBottom: spacing.sm,
   },
 });

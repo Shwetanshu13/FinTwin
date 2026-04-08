@@ -5,7 +5,7 @@ import OneTimePurchaseForm from "./OneTimePurchaseForm";
 import EMIPurchaseForm from "./EMIPurchaseForm";
 import IncomeChangeForm from "./IncomeChangeForm";
 import RunwayCalculator from "./RunwayCalculator";
-import { colors } from "../../theme";
+import { colors, fontSizes, radii, shadows, spacing } from "../../theme";
 
 const tabs = [
   { key: "ONE_TIME", label: "One-time", icon: "card-outline" },
@@ -53,7 +53,7 @@ export default function FormsHub() {
               <Ionicons
                 name={t.icon}
                 size={18}
-                color={active === t.key ? colors.light : colors.slate}
+                color={active === t.key ? colors.white : colors.textSecondary}
               />
               <Text style={[styles.tabText, active === t.key && styles.tabTextActive]}>{t.label}</Text>
             </View>
@@ -71,47 +71,44 @@ export default function FormsHub() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, gap: 8, paddingBottom: 8 },
-  header: { paddingHorizontal: 4, paddingVertical: 6 },
-  title: { fontSize: 16, fontWeight: "800", color: colors.dark },
-  hint: { fontSize: 12, color: colors.slate, marginTop: 2 },
+  container: { flex: 1, gap: spacing.sm, paddingBottom: spacing.sm },
+  header: { paddingHorizontal: spacing.xs, paddingVertical: spacing.sm },
+  title: { fontSize: fontSizes.lg, fontWeight: "800", color: colors.textPrimary },
+  hint: { fontSize: fontSizes.xs, color: colors.textSecondary, marginTop: 2 },
   main: { flex: 1 },
-  body: { paddingVertical: 12, paddingBottom: 24, paddingHorizontal: 2 },
+  body: { paddingVertical: spacing.md, paddingBottom: spacing.xxl, paddingHorizontal: 2 },
   topNav: {
     height: 64,
-    marginHorizontal: 8,
-    marginTop: 8,
-    backgroundColor: colors.light,
-    borderRadius: 999,
-    shadowColor: colors.dark,
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 4,
+    marginHorizontal: spacing.sm,
+    marginTop: spacing.sm,
+    backgroundColor: colors.surface,
+    borderRadius: radii.pill,
+    ...shadows.card,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-around",
-    paddingHorizontal: 12,
+    paddingHorizontal: spacing.md,
   },
   tab: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 999,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radii.pill,
     backgroundColor: "transparent",
   },
   tabActive: {
-    backgroundColor: colors.accent,
+    backgroundColor: colors.primary,
   },
   tabText: {
-    fontSize: 12,
-    color: colors.slate,
+    fontSize: fontSizes.xs,
+    color: colors.textSecondary,
     fontWeight: "600",
   },
   tabTextActive: {
-    color: colors.light,
+    color: colors.white,
   },
   tabContent: {
     alignItems: "center",
     justifyContent: "center",
-    gap: 4,
+    gap: spacing.xs,
   },
 });

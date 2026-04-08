@@ -4,11 +4,14 @@ import {
     Platform,
     Pressable,
     ScrollView,
+    StyleSheet,
     Text,
-    TextInput,
+    View,
 } from "react-native";
 
 import { register } from "../api/auth";
+import { FormField } from "../components/FormField";
+import { colors, fontSizes, spacing } from "../../theme";
 import { sharedStyles } from "./shared";
 
 export function RegisterScreen({ onGoToLogin, onAuthSuccess, authResult }) {
@@ -50,13 +53,21 @@ export function RegisterScreen({ onGoToLogin, onAuthSuccess, authResult }) {
             behavior={Platform.OS === "ios" ? "padding" : "height"}
         >
             <ScrollView
-                contentContainerStyle={sharedStyles.screen}
+                contentContainerStyle={styles.screen}
                 keyboardShouldPersistTaps="handled"
                 keyboardDismissMode="on-drag"
                 contentInsetAdjustmentBehavior="always"
             >
-                <Text style={sharedStyles.title}>Register</Text>
-                <Text style={sharedStyles.hint}>Create your account.</Text>
+                <View style={styles.brandWrap}>
+                    <Text style={styles.brand}>FinTwin</Text>
+                </View>
+
+                <View style={styles.headerWrap}>
+                    <Text style={styles.title}>Create Account</Text>
+                    <Text style={styles.subtitle}>
+                        Join FinTwin and take control of your finances
+                    </Text>
+                </View>
 
                 {error ? <Text style={sharedStyles.error}>{error}</Text> : null}
                 {authResult?.user?.id ? (
@@ -65,65 +76,120 @@ export function RegisterScreen({ onGoToLogin, onAuthSuccess, authResult }) {
                     </Text>
                 ) : null}
 
-                <TextInput
-                    value={fullName}
-                    onChangeText={setFullName}
-                    placeholder="Full name"
-                    autoCapitalize="words"
-                    style={sharedStyles.input}
-                    editable={!loading}
-                    returnKeyType="next"
-                />
-                <TextInput
-                    value={username}
-                    onChangeText={setUsername}
-                    placeholder="Username"
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    style={sharedStyles.input}
-                    editable={!loading}
-                    returnKeyType="next"
-                />
-                <TextInput
-                    value={email}
-                    onChangeText={setEmail}
-                    placeholder="Email"
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    keyboardType="email-address"
-                    style={sharedStyles.input}
-                    editable={!loading}
-                    returnKeyType="next"
-                />
-                <TextInput
-                    value={phone}
-                    onChangeText={setPhone}
-                    placeholder="Phone (optional)"
-                    keyboardType="phone-pad"
-                    style={sharedStyles.input}
-                    editable={!loading}
-                    returnKeyType="next"
-                />
-                <TextInput
-                    value={password}
-                    onChangeText={setPassword}
-                    placeholder="Password"
-                    secureTextEntry
-                    style={sharedStyles.input}
-                    editable={!loading}
-                    returnKeyType="done"
-                />
+                <View style={styles.formWrap}>
+                    <FormField
+                        label="Full Name"
+                        value={fullName}
+                        onChangeText={setFullName}
+                        placeholder="Your full name"
+                        autoCapitalize="words"
+                        editable={!loading}
+                        returnKeyType="next"
+                    />
+                    <FormField
+                        label="Username"
+                        value={username}
+                        onChangeText={setUsername}
+                        placeholder="Choose a username"
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        editable={!loading}
+                        returnKeyType="next"
+                    />
+                    <FormField
+                        label="Email"
+                        value={email}
+                        onChangeText={setEmail}
+                        placeholder="your@email.com"
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        keyboardType="email-address"
+                        editable={!loading}
+                        returnKeyType="next"
+                    />
+                    <FormField
+                        label="Phone (optional)"
+                        value={phone}
+                        onChangeText={setPhone}
+                        placeholder="+91 XXXXX XXXXX"
+                        keyboardType="phone-pad"
+                        editable={!loading}
+                        returnKeyType="next"
+                    />
+                    <FormField
+                        label="Password"
+                        value={password}
+                        onChangeText={setPassword}
+                        placeholder="Create a strong password"
+                        secureTextEntry
+                        editable={!loading}
+                        returnKeyType="done"
+                    />
+                </View>
 
-                <Pressable style={sharedStyles.button} onPress={onSubmit} disabled={loading}>
+                <Pressable
+                    style={({ pressed }) => [
+                        sharedStyles.button,
+                        pressed && { opacity: 0.85 },
+                    ]}
+                    onPress={onSubmit}
+                    disabled={loading}
+                >
                     <Text style={sharedStyles.buttonText}>
-                        {loading ? "Creating..." : "Create account"}
+                        {loading ? "Creating…" : "Create Account"}
                     </Text>
                 </Pressable>
 
                 <Pressable onPress={onGoToLogin} disabled={loading}>
-                    <Text style={sharedStyles.link}>I already have an account</Text>
+                    <Text style={sharedStyles.link}>
+                        Already have an account?{" "}
+                        <Text style={styles.linkBold}>Sign in</Text>
+                    </Text>
                 </Pressable>
             </ScrollView>
         </KeyboardAvoidingView>
     );
 }
+
+const styles = StyleSheet.create({
+    screen: {
+        flexGrow: 1,
+        padding: spacing.xxl,
+        justifyContent: "center",
+        gap: spacing.lg,
+        backgroundColor: colors.background,
+    },
+    brandWrap: {
+        alignItems: "center",
+        marginBottom: spacing.sm,
+    },
+    brand: {
+        fontSize: 32,
+        fontWeight: "900",
+        color: colors.primary,
+        letterSpacing: -0.8,
+    },
+    headerWrap: {
+        alignItems: "center",
+        gap: spacing.xs,
+        marginBottom: spacing.sm,
+    },
+    title: {
+        fontSize: fontSizes.xxl,
+        fontWeight: "800",
+        color: colors.textPrimary,
+        letterSpacing: -0.5,
+    },
+    subtitle: {
+        fontSize: fontSizes.md,
+        color: colors.textSecondary,
+        textAlign: "center",
+    },
+    formWrap: {
+        gap: spacing.lg,
+    },
+    linkBold: {
+        fontWeight: "800",
+        color: colors.primary,
+    },
+});

@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet, Dimensions } from "react-native";
 import { LineChart } from "react-native-chart-kit";
-import { colors } from "../../theme";
+import { colors, fontSizes, radii, shadows, spacing } from "../../theme";
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -13,7 +13,7 @@ export default function Dashboard() {
     labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
       datasets: [{
       data: demoBalances,
-      color: () => colors.accent,
+      color: () => colors.primary,
       strokeWidth: 3,
     }],
   };
@@ -24,19 +24,19 @@ export default function Dashboard() {
       <View style={styles.statsRow}>
         <View style={styles.statCard}>
           <Text style={styles.statLabel}>Savings</Text>
-          <Text style={styles.statValue}>₹12,000</Text>
+          <Text style={[styles.statValue, { color: colors.positive }]}>₹12,000</Text>
           <Text style={styles.statDelta}>+4.2% vs last month</Text>
         </View>
         <View style={styles.statCard}>
           <Text style={styles.statLabel}>Monthly Net</Text>
-          <Text style={styles.statValue}>-₹800</Text>
+          <Text style={[styles.statValue, { color: colors.negative }]}>-₹800</Text>
           <Text style={styles.statDelta}>Burning cash</Text>
         </View>
       </View>
 
       <View style={styles.statCardWide}>
         <Text style={styles.statLabel}>Runway</Text>
-        <Text style={styles.statValue}>14 months</Text>
+        <Text style={[styles.statValue, { color: colors.warning }]}>14 months</Text>
         <Text style={styles.statDelta}>Based on current burn</Text>
       </View>
 
@@ -51,13 +51,13 @@ export default function Dashboard() {
           withOuterLines={false}
           yAxisSuffix=""
           chartConfig={{
-            backgroundGradientFrom: colors.light,
-            backgroundGradientTo: colors.light,
+            backgroundGradientFrom: colors.surface,
+            backgroundGradientTo: colors.surface,
             decimalPlaces: 0,
-            color: () => colors.accent,
-            labelColor: () => colors.slate,
+            color: () => colors.primary,
+            labelColor: () => colors.textSecondary,
             propsForBackgroundLines: {
-              stroke: colors.slate,
+              stroke: colors.border,
             },
           }}
           style={styles.chart}
@@ -69,64 +69,63 @@ export default function Dashboard() {
 
 const styles = StyleSheet.create({
   container: {
-    gap: 16,
+    gap: spacing.lg,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: colors.dark,
+    fontSize: fontSizes.xs,
+    fontWeight: "800",
+    color: colors.textSecondary,
+    textTransform: "uppercase",
+    letterSpacing: 1.2,
   },
   sectionSpacing: {
-    marginTop: 4,
+    marginTop: spacing.xs,
   },
   statsRow: {
     flexDirection: "row",
-    gap: 12,
+    gap: spacing.md,
   },
   statCard: {
     flex: 1,
-    backgroundColor: colors.light,
-    borderRadius: 16,
-    padding: 16,
-    shadowColor: colors.dark,
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 2,
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
+    padding: spacing.lg,
+    ...shadows.card,
   },
   statCardWide: {
-    backgroundColor: colors.light,
-    borderRadius: 16,
-    padding: 16,
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
+    padding: spacing.lg,
     borderWidth: 1,
-    borderColor: colors.slate,
+    borderColor: colors.border,
   },
   statLabel: {
-    fontSize: 12,
-    color: colors.slate,
+    fontSize: fontSizes.xs,
+    color: colors.textSecondary,
     marginBottom: 6,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
   },
   statValue: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: colors.dark,
+    fontSize: fontSizes.xl,
+    fontWeight: "800",
+    color: colors.textPrimary,
   },
   statDelta: {
     marginTop: 6,
-    fontSize: 12,
-    color: colors.slate,
+    fontSize: fontSizes.xs,
+    color: colors.textTertiary,
   },
   chartCard: {
-    backgroundColor: colors.light,
-    borderRadius: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 8,
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.sm,
     alignItems: "center",
-    shadowColor: colors.dark,
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 2,
+    ...shadows.card,
   },
   chart: {
-    borderRadius: 12,
+    borderRadius: radii.md,
   },
 });

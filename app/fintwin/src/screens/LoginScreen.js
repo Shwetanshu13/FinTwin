@@ -4,11 +4,14 @@ import {
     Platform,
     Pressable,
     ScrollView,
+    StyleSheet,
     Text,
-    TextInput,
+    View,
 } from "react-native";
 
 import { login } from "../api/auth";
+import { FormField } from "../components/FormField";
+import { colors, fontSizes, spacing } from "../../theme";
 import { sharedStyles } from "./shared";
 
 export function LoginScreen({ onGoToRegister, onAuthSuccess, authResult }) {
@@ -46,13 +49,21 @@ export function LoginScreen({ onGoToRegister, onAuthSuccess, authResult }) {
             behavior={Platform.OS === "ios" ? "padding" : "height"}
         >
             <ScrollView
-                contentContainerStyle={sharedStyles.screen}
+                contentContainerStyle={styles.screen}
                 keyboardShouldPersistTaps="handled"
                 keyboardDismissMode="on-drag"
                 contentInsetAdjustmentBehavior="always"
             >
-                <Text style={sharedStyles.title}>Login</Text>
-                <Text style={sharedStyles.hint}>Use email or username.</Text>
+                <View style={styles.brandWrap}>
+                    <Text style={styles.brand}>FinTwin</Text>
+                </View>
+
+                <View style={styles.headerWrap}>
+                    <Text style={styles.title}>Welcome back</Text>
+                    <Text style={styles.subtitle}>
+                        Sign in to your account
+                    </Text>
+                </View>
 
                 {error ? <Text style={sharedStyles.error}>{error}</Text> : null}
                 {authResult?.user?.id ? (
@@ -61,36 +72,90 @@ export function LoginScreen({ onGoToRegister, onAuthSuccess, authResult }) {
                     </Text>
                 ) : null}
 
-                <TextInput
-                    value={identifier}
-                    onChangeText={setIdentifier}
-                    placeholder="Email or username"
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    style={sharedStyles.input}
-                    editable={!loading}
-                    returnKeyType="next"
-                />
-                <TextInput
-                    value={password}
-                    onChangeText={setPassword}
-                    placeholder="Password"
-                    secureTextEntry
-                    style={sharedStyles.input}
-                    editable={!loading}
-                    returnKeyType="done"
-                />
+                <View style={styles.formWrap}>
+                    <FormField
+                        label="Email or Username"
+                        value={identifier}
+                        onChangeText={setIdentifier}
+                        placeholder="Enter your email or username"
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        editable={!loading}
+                        returnKeyType="next"
+                    />
+                    <FormField
+                        label="Password"
+                        value={password}
+                        onChangeText={setPassword}
+                        placeholder="Enter your password"
+                        secureTextEntry
+                        editable={!loading}
+                        returnKeyType="done"
+                    />
+                </View>
 
-                <Pressable style={sharedStyles.button} onPress={onSubmit} disabled={loading}>
+                <Pressable
+                    style={({ pressed }) => [
+                        sharedStyles.button,
+                        pressed && { opacity: 0.85 },
+                    ]}
+                    onPress={onSubmit}
+                    disabled={loading}
+                >
                     <Text style={sharedStyles.buttonText}>
-                        {loading ? "Signing in..." : "Sign in"}
+                        {loading ? "Signing in…" : "Sign In"}
                     </Text>
                 </Pressable>
 
                 <Pressable onPress={onGoToRegister} disabled={loading}>
-                    <Text style={sharedStyles.link}>Create an account</Text>
+                    <Text style={sharedStyles.link}>
+                        Don't have an account?{" "}
+                        <Text style={styles.linkBold}>Create one</Text>
+                    </Text>
                 </Pressable>
             </ScrollView>
         </KeyboardAvoidingView>
     );
 }
+
+const styles = StyleSheet.create({
+    screen: {
+        flexGrow: 1,
+        padding: spacing.xxl,
+        justifyContent: "center",
+        gap: spacing.lg,
+        backgroundColor: colors.background,
+    },
+    brandWrap: {
+        alignItems: "center",
+        marginBottom: spacing.sm,
+    },
+    brand: {
+        fontSize: 32,
+        fontWeight: "900",
+        color: colors.primary,
+        letterSpacing: -0.8,
+    },
+    headerWrap: {
+        alignItems: "center",
+        gap: spacing.xs,
+        marginBottom: spacing.sm,
+    },
+    title: {
+        fontSize: fontSizes.xxl,
+        fontWeight: "800",
+        color: colors.textPrimary,
+        letterSpacing: -0.5,
+    },
+    subtitle: {
+        fontSize: fontSizes.md,
+        color: colors.textSecondary,
+    },
+    formWrap: {
+        gap: spacing.lg,
+    },
+    linkBold: {
+        fontWeight: "800",
+        color: colors.primary,
+    },
+});

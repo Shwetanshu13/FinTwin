@@ -1,5 +1,5 @@
 import { View, Text, StyleSheet } from "react-native";
-import { colors } from "../../theme";
+import { colors, fontSizes, radii, shadows, spacing } from "../../theme";
 import { useState } from "react";
 import FormInput from "../components/FormInput";
 import PrimaryButton from "../components/PrimaryButton";
@@ -26,9 +26,23 @@ export default function RunwayCalculator() {
       <PrimaryButton title="Calculate Runway" onPress={calculate} />
       {runway !== null && (
         <View style={styles.result}>
-          <Text style={styles.resultLabel}>Runway</Text>
-          <Text style={styles.resultValue}>
-            {runway === Infinity ? "Stable" : `${runway} months`}
+          <Text style={styles.resultLabel}>RUNWAY</Text>
+          <Text
+            style={[
+              styles.resultValue,
+              {
+                color:
+                  runway === Infinity
+                    ? colors.positive
+                    : runway >= 12
+                    ? colors.positive
+                    : runway >= 6
+                    ? colors.warning
+                    : colors.negative,
+              },
+            ]}
+          >
+            {runway === Infinity ? "Stable ∞" : `${runway} months`}
           </Text>
           <Text style={styles.resultHint}>
             {runway === Infinity ? "You are cashflow positive." : "Based on current burn."}
@@ -41,46 +55,46 @@ export default function RunwayCalculator() {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.light,
-    padding: 16,
-    borderRadius: 16,
-    shadowColor: colors.dark,
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 2,
-    gap: 4,
+    backgroundColor: colors.surface,
+    padding: spacing.xl,
+    borderRadius: radii.lg,
+    gap: spacing.xs,
+    ...shadows.card,
   },
   title: {
-    fontSize: 16,
+    fontSize: fontSizes.lg,
     fontWeight: "700",
-    color: colors.dark,
+    color: colors.textPrimary,
   },
   subtitle: {
-    fontSize: 12,
-    color: colors.slate,
-    marginBottom: 8,
+    fontSize: fontSizes.xs,
+    color: colors.textSecondary,
+    marginBottom: spacing.sm,
   },
   result: {
-    marginTop: 12,
-    padding: 12,
-    borderRadius: 12,
-    backgroundColor: colors.light,
+    marginTop: spacing.md,
+    padding: spacing.lg,
+    borderRadius: radii.md,
+    backgroundColor: colors.background,
     borderWidth: 1,
-    borderColor: colors.slate,
+    borderColor: colors.border,
   },
   resultLabel: {
-    fontSize: 12,
-    color: colors.slate,
+    fontSize: fontSizes.xs,
+    color: colors.textSecondary,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 1,
   },
   resultValue: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: colors.dark,
-    marginTop: 4,
+    fontSize: fontSizes.xl,
+    fontWeight: "800",
+    color: colors.textPrimary,
+    marginTop: spacing.xs,
   },
   resultHint: {
-    fontSize: 12,
-    color: colors.slate,
-    marginTop: 4,
+    fontSize: fontSizes.xs,
+    color: colors.textTertiary,
+    marginTop: spacing.xs,
   },
 });

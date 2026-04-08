@@ -2,7 +2,7 @@ import { useState } from "react";
 import { View, Text, Alert, StyleSheet, TouchableOpacity } from "react-native";
 import FormInput from "../components/FormInput";
 import PrimaryButton from "../components/PrimaryButton";
-import { colors } from "../../theme";
+import { colors, fontSizes, spacing } from "../../theme";
 
 export default function Login({ onLoginSuccess, onSignUp }) {
   const [email, setEmail] = useState("");
@@ -55,13 +55,13 @@ export default function Login({ onLoginSuccess, onSignUp }) {
 }
 
 const styles = StyleSheet.create({
-  container: { paddingVertical: 12 },
-  title: { fontSize: 20, fontWeight: "800", color: colors.dark, marginBottom: 6 },
-  subtitle: { color: colors.slate, marginBottom: 16 },
-  form: { marginTop: 8 },
-  actions: { marginTop: 12 },
-  signupRow: { flexDirection: "row", alignItems: "center", marginTop: 12 },
-  signupText: { color: colors.slate, marginRight: 8 },
+  container: { paddingVertical: spacing.md },
+  title: { fontSize: fontSizes.xl, fontWeight: "800", color: colors.textPrimary, marginBottom: spacing.xs },
+  subtitle: { color: colors.textSecondary, marginBottom: spacing.lg },
+  form: { marginTop: spacing.sm },
+  actions: { marginTop: spacing.md },
+  signupRow: { flexDirection: "row", alignItems: "center", marginTop: spacing.md },
+  signupText: { color: colors.textSecondary, marginRight: spacing.sm },
   signupButton: {},
   signupLink: { color: colors.primary, fontWeight: "700" },
 });

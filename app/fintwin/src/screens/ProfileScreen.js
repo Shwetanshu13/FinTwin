@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+    ActivityIndicator,
     KeyboardAvoidingView,
     Platform,
     Pressable,
     ScrollView,
+    StyleSheet,
     Text,
-    TextInput,
     View,
 } from "react-native";
 
@@ -13,8 +14,9 @@ import { getProfile, updateProfile } from "../api/profile";
 import { setAuthResult as setSessionAuthResult } from "../session/authSession";
 import { saveAuthResult } from "../storage/auth";
 import { sharedStyles } from "./shared";
+import { FormField } from "../components/FormField";
 
-import colors from "../../theme";
+import { colors, fontSizes, radii, shadows, spacing } from "../../theme";
 
 export function ProfileScreen({ authResult, onGoHome, onLogout }) {
     const [loading, setLoading] = useState(false);
@@ -95,13 +97,21 @@ export function ProfileScreen({ authResult, onGoHome, onLogout }) {
                 setSessionAuthResult(nextAuth);
                 void saveAuthResult(nextAuth);
             }
-            setSuccess("PROFILE_UPDATED");
+            setSuccess("Profile updated successfully!");
         } catch (e) {
             setError(e?.message || "REQUEST_FAILED");
         } finally {
             setSaving(false);
         }
     }
+
+    // Generate initials for avatar
+    const initials = useMemo(() => {
+        const name = draft.fullName || draft.username || "";
+        const parts = name.split(" ").filter(Boolean);
+        if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+        return (parts[0]?.[0] || "?").toUpperCase();
+    }, [draft.fullName, draft.username]);
 
     return (
         <KeyboardAvoidingView
@@ -115,109 +125,175 @@ export function ProfileScreen({ authResult, onGoHome, onLogout }) {
                 keyboardDismissMode="on-drag"
                 contentInsetAdjustmentBehavior="always"
             >
-                <View style={styles.headerCard}>
-                    <Text style={sharedStyles.title}>Profile</Text>
-                    <Text style={sharedStyles.hint}>Signed in as {signedInAs}</Text>
-
-                    {errorText ? <Text style={sharedStyles.error}>{errorText}</Text> : null}
-                    {success ? <Text style={sharedStyles.success}>{success}</Text> : null}
-                    {loading ? <Text style={sharedStyles.hint}>Loading...</Text> : null}
-
-                    <View style={styles.topActions}>
-                        <Pressable style={sharedStyles.secondaryButton} onPress={onGoHome} disabled={loading || saving}>
-                            <Text style={sharedStyles.secondaryButtonText}>Home</Text>
-                        </Pressable>
-                        <Pressable style={sharedStyles.secondaryButton} onPress={onLogout} disabled={loading || saving}>
-                            <Text style={sharedStyles.secondaryButtonText}>Log out</Text>
-                        </Pressable>
-                    </View>
+                {/* ── Header ── */}
+                <View style={styles.header}>
+                    <Text style={styles.title}>Profile</Text>
                 </View>
 
-                <Text style={sharedStyles.sectionTitle}>Username</Text>
-                <TextInput
-                    value={draft.username}
-                    onChangeText={(v) => setDraft((p) => ({ ...p, username: v }))}
-                    autoCapitalize="none"
-                    style={sharedStyles.input}
-                    editable={!loading && !saving}
-                    returnKeyType="next"
-                    placeholderTextColor="rgba(34, 40, 49, 0.45)"
-                />
+                {/* ── Avatar card ── */}
+                <View style={styles.avatarCard}>
+                    <View style={styles.avatar}>
+                        <Text style={styles.avatarText}>{initials}</Text>
+                    </View>
+                    <Text style={styles.avatarName}>{signedInAs}</Text>
+                    <Text style={styles.avatarEmail}>{draft.email}</Text>
+                </View>
 
-                <Text style={sharedStyles.sectionTitle}>Email</Text>
-                <TextInput
-                    value={draft.email}
-                    onChangeText={(v) => setDraft((p) => ({ ...p, email: v }))}
-                    autoCapitalize="none"
-                    keyboardType="email-address"
-                    style={sharedStyles.input}
-                    editable={!loading && !saving}
-                    returnKeyType="next"
-                    placeholderTextColor="rgba(34, 40, 49, 0.45)"
-                />
+                {errorText ? <Text style={sharedStyles.error}>{errorText}</Text> : null}
+                {success ? <Text style={sharedStyles.success}>{success}</Text> : null}
+                {loading ? (
+                    <ActivityIndicator
+                        size="small"
+                        color={colors.primary}
+                        style={{ marginVertical: spacing.lg }}
+                    />
+                ) : null}
 
-                <Text style={sharedStyles.sectionTitle}>Full name</Text>
-                <TextInput
-                    value={draft.fullName}
-                    onChangeText={(v) => setDraft((p) => ({ ...p, fullName: v }))}
-                    style={sharedStyles.input}
-                    editable={!loading && !saving}
-                    returnKeyType="next"
-                    placeholderTextColor="rgba(34, 40, 49, 0.45)"
-                />
+                {/* ── Form ── */}
+                <View style={styles.formCard}>
+                    <Text style={styles.formCardTitle}>Personal Information</Text>
+                    <FormField
+                        label="Username"
+                        value={draft.username}
+                        onChangeText={(v) => setDraft((p) => ({ ...p, username: v }))}
+                        autoCapitalize="none"
+                        editable={!loading && !saving}
+                        returnKeyType="next"
+                    />
+                    <FormField
+                        label="Email"
+                        value={draft.email}
+                        onChangeText={(v) => setDraft((p) => ({ ...p, email: v }))}
+                        autoCapitalize="none"
+                        keyboardType="email-address"
+                        editable={!loading && !saving}
+                        returnKeyType="next"
+                    />
+                    <FormField
+                        label="Full Name"
+                        value={draft.fullName}
+                        onChangeText={(v) => setDraft((p) => ({ ...p, fullName: v }))}
+                        editable={!loading && !saving}
+                        returnKeyType="next"
+                    />
+                    <FormField
+                        label="Phone"
+                        value={draft.phone}
+                        onChangeText={(v) => setDraft((p) => ({ ...p, phone: v }))}
+                        keyboardType="phone-pad"
+                        editable={!loading && !saving}
+                        returnKeyType="done"
+                    />
+                </View>
 
-                <Text style={sharedStyles.sectionTitle}>Phone</Text>
-                <TextInput
-                    value={draft.phone}
-                    onChangeText={(v) => setDraft((p) => ({ ...p, phone: v }))}
-                    keyboardType="phone-pad"
-                    style={sharedStyles.input}
-                    editable={!loading && !saving}
-                    returnKeyType="done"
-                    placeholderTextColor="rgba(34, 40, 49, 0.45)"
-                />
+                {/* ── Save button ── */}
+                <Pressable
+                    style={({ pressed }) => [
+                        sharedStyles.button,
+                        pressed && { opacity: 0.85 },
+                    ]}
+                    onPress={onSave}
+                    disabled={loading || saving}
+                >
+                    <Text style={sharedStyles.buttonText}>
+                        {saving ? "Saving…" : "Save Changes"}
+                    </Text>
+                </Pressable>
 
-                <Pressable style={sharedStyles.button} onPress={onSave} disabled={loading || saving}>
-                    <Text style={sharedStyles.buttonText}>{saving ? "Saving..." : "Save changes"}</Text>
+                {/* ── Log out ── */}
+                <Pressable
+                    style={({ pressed }) => [
+                        styles.logoutBtn,
+                        pressed && { opacity: 0.7 },
+                    ]}
+                    onPress={onLogout}
+                    disabled={loading || saving}
+                >
+                    <Text style={styles.logoutText}>Log Out</Text>
                 </Pressable>
             </ScrollView>
         </KeyboardAvoidingView>
     );
 }
 
-const styles = {
+const styles = StyleSheet.create({
     scroll: {
-        backgroundColor: colors.light,
+        backgroundColor: colors.background,
     },
     container: {
-        padding: 20,
-        paddingBottom: 32,
-        gap: 12,
-        backgroundColor: colors.light,
+        padding: spacing.xxl,
+        paddingBottom: spacing.xxxl + 16,
+        gap: spacing.lg,
+        backgroundColor: colors.background,
     },
-    headerCard: {
-        borderWidth: 1,
-        borderColor: "rgba(34, 40, 49, 0.12)",
-        borderRadius: 16,
-        padding: 14,
-        gap: 6,
-        backgroundColor: colors.white,
-        ...Platform.select({
-            ios: {
-                shadowColor: "#000",
-                shadowOpacity: 0.05,
-                shadowRadius: 10,
-                shadowOffset: { width: 0, height: 4 },
-            },
-            android: {
-                elevation: 1,
-            },
-        }),
+    header: {
+        marginBottom: spacing.xs,
     },
-    topActions: {
-        flexDirection: "row",
-        flexWrap: "wrap",
-        gap: 8,
-        marginTop: 6,
+    title: {
+        fontSize: fontSizes.xxl + 4,
+        fontWeight: "900",
+        color: colors.textPrimary,
+        letterSpacing: -0.8,
     },
-};
+
+    /* Avatar card */
+    avatarCard: {
+        backgroundColor: colors.surface,
+        borderRadius: radii.xl,
+        padding: spacing.xxl,
+        alignItems: "center",
+        gap: spacing.xs,
+        ...shadows.card,
+    },
+    avatar: {
+        width: 72,
+        height: 72,
+        borderRadius: 36,
+        backgroundColor: colors.primaryLight,
+        alignItems: "center",
+        justifyContent: "center",
+        marginBottom: spacing.sm,
+    },
+    avatarText: {
+        fontSize: fontSizes.xxl,
+        fontWeight: "800",
+        color: colors.primary,
+    },
+    avatarName: {
+        fontSize: fontSizes.lg,
+        fontWeight: "700",
+        color: colors.textPrimary,
+    },
+    avatarEmail: {
+        fontSize: fontSizes.sm,
+        color: colors.textSecondary,
+    },
+
+    /* Form card */
+    formCard: {
+        backgroundColor: colors.surface,
+        borderRadius: radii.lg,
+        padding: spacing.xl,
+        gap: spacing.lg,
+        ...shadows.card,
+    },
+    formCardTitle: {
+        fontSize: fontSizes.xs,
+        fontWeight: "800",
+        color: colors.textSecondary,
+        textTransform: "uppercase",
+        letterSpacing: 1.2,
+    },
+
+    /* Log out */
+    logoutBtn: {
+        paddingVertical: spacing.lg,
+        alignItems: "center",
+        marginTop: spacing.sm,
+    },
+    logoutText: {
+        fontSize: fontSizes.md,
+        fontWeight: "700",
+        color: colors.negative,
+    },
+});

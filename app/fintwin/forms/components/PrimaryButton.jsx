@@ -1,5 +1,5 @@
 import { Pressable, Text, StyleSheet } from "react-native";
-import { colors } from "../../theme";
+import { colors, fontSizes, radii, spacing } from "../../theme";
 
 export default function PrimaryButton({ title, onPress, variant = "primary" }) {
   return (
@@ -18,33 +18,34 @@ export default function PrimaryButton({ title, onPress, variant = "primary" }) {
 
 const styles = StyleSheet.create({
   base: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
+    paddingVertical: 15,
+    paddingHorizontal: spacing.xl,
+    borderRadius: radii.md,
     alignItems: "center",
     justifyContent: "center",
+    minHeight: 52,
   },
   primary: {
-    backgroundColor: colors.accent,
+    backgroundColor: colors.primary,
   },
   primaryText: {
-    color: colors.light,
+    color: colors.white,
     fontWeight: "700",
   },
   outline: {
-    borderWidth: 1,
-    borderColor: colors.slate,
-    backgroundColor: colors.light,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
   },
   outlineText: {
-    color: colors.dark,
+    color: colors.textPrimary,
     fontWeight: "600",
   },
   pressed: {
     opacity: 0.85,
   },
   text: {
-    fontSize: 14,
-    letterSpacing: 0.2,
+    fontSize: fontSizes.md,
+    letterSpacing: 0.3,
   },
 });

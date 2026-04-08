@@ -1,11 +1,12 @@
 import { useMemo, useState } from "react";
 import {
+    ActivityIndicator,
     KeyboardAvoidingView,
     Platform,
     Pressable,
     ScrollView,
+    StyleSheet,
     Text,
-    TextInput,
     View,
 } from "react-native";
 
@@ -18,7 +19,13 @@ import {
 } from "../api/calc";
 import { sharedStyles } from "./shared";
 
-import colors from "../../theme";
+import { FormField } from "../components/FormField";
+import { FeatureCard } from "../components/FeatureCard";
+import { StatCard } from "../components/StatCard";
+import { RunwayGauge } from "../components/RunwayGauge";
+import { InsightCard } from "../components/InsightCard";
+
+import { colors, fontSizes, radii, shadows, spacing } from "../../theme";
 
 function toNumberOrUndefined(value) {
     const raw = String(value ?? "").trim();
@@ -27,43 +34,151 @@ function toNumberOrUndefined(value) {
     return Number.isFinite(num) ? num : undefined;
 }
 
-function JsonOutput({ data }) {
-    if (!data) return null;
+function formatCurrency(v) {
+    if (v == null || v === 0) return "—";
+    return `₹${Number(v).toLocaleString("en-IN")}`;
+}
+
+/* ── Affordability Badge ── */
+function AffordabilityBadge({ affordable }) {
+    if (affordable == null) return null;
+    const yes = Boolean(affordable);
     return (
-        <View style={styles.outputBox}>
-            <Text style={styles.outputText}>{JSON.stringify(data, null, 2)}</Text>
+        <View
+            style={[
+                resultStyles.badge,
+                { backgroundColor: yes ? colors.positiveLt : colors.negativeLt },
+            ]}
+        >
+            <Text style={resultStyles.badgeIcon}>{yes ? "✅" : "⚠️"}</Text>
+            <Text
+                style={[
+                    resultStyles.badgeText,
+                    { color: yes ? colors.positive : colors.negative },
+                ]}
+            >
+                {yes ? "Affordable" : "Not Affordable"}
+            </Text>
         </View>
     );
 }
 
-function DecisionSummary({ decision }) {
-    if (!decision?.decisionStatement) return null;
+/* ═══════════ RESULTS PANEL ═══════════ */
+function ResultsPanel({ data }) {
+    if (!data) return null;
+
+    const {
+        totalIncome,
+        totalVariableExpenses,
+        totalMonthlyIncome,
+        totalMonthlyExpense,
+        finalSavings,
+        runwayMonths,
+        monthlyNetSavings,
+        affordability,
+        increasedMonthlyExpenses,
+        decreasedMonthlySavings,
+        decision,
+    } = data;
+
+    const hasRunway = runwayMonths != null && runwayMonths > 0;
+    const displayIncome = totalIncome ?? totalMonthlyIncome;
+    const displayExpense = totalVariableExpenses ?? totalMonthlyExpense;
 
     return (
-        <View style={styles.summaryBox}>
-            <Text style={styles.summaryTitle}>Decision</Text>
-            <Text style={styles.summaryText}>{decision.decisionStatement}</Text>
-            {Array.isArray(decision.keyPoints) && decision.keyPoints.length ? (
-                <View style={styles.keyPoints}>
-                    {decision.keyPoints.map((p, idx) => (
-                        <Text key={`kp-${idx}`} style={styles.keyPointText}>
-                            - {p}
-                        </Text>
-                    ))}
+        <View style={resultStyles.container}>
+            {/* Section label */}
+            <Text style={resultStyles.sectionLabel}>RESULTS</Text>
+
+            {/* Affordability badge (for purchase calculations) */}
+            <AffordabilityBadge affordable={affordability} />
+
+            {/* Runway hero gauge */}
+            {hasRunway ? (
+                <RunwayGauge months={runwayMonths} />
+            ) : null}
+
+            {/* Stat cards grid */}
+            <View style={resultStyles.statsGrid}>
+                {displayIncome != null ? (
+                    <StatCard
+                        icon="💰"
+                        label="Total Income"
+                        value={formatCurrency(displayIncome)}
+                        accentColor={colors.positive}
+                    />
+                ) : null}
+                {displayExpense != null ? (
+                    <StatCard
+                        icon="🧾"
+                        label="Total Expenses"
+                        value={formatCurrency(displayExpense)}
+                        accentColor={colors.negative}
+                    />
+                ) : null}
+            </View>
+
+            <View style={resultStyles.statsGrid}>
+                {finalSavings != null ? (
+                    <StatCard
+                        icon="🏦"
+                        label="Final Savings"
+                        value={formatCurrency(finalSavings)}
+                        accentColor={
+                            finalSavings >= 0 ? colors.positive : colors.negative
+                        }
+                    />
+                ) : null}
+                {monthlyNetSavings != null ? (
+                    <StatCard
+                        icon="📈"
+                        label="Monthly Net"
+                        value={formatCurrency(monthlyNetSavings)}
+                        accentColor={
+                            monthlyNetSavings >= 0 ? colors.positive : colors.negative
+                        }
+                    />
+                ) : null}
+            </View>
+
+            {/* EMI-specific extra stats */}
+            {(increasedMonthlyExpenses != null || decreasedMonthlySavings != null) ? (
+                <View style={resultStyles.statsGrid}>
+                    {increasedMonthlyExpenses != null ? (
+                        <StatCard
+                            icon="📊"
+                            label="New Expenses"
+                            value={formatCurrency(increasedMonthlyExpenses)}
+                            accentColor={colors.warning}
+                            subtitle="After EMI"
+                        />
+                    ) : null}
+                    {decreasedMonthlySavings != null ? (
+                        <StatCard
+                            icon="📉"
+                            label="New Savings"
+                            value={formatCurrency(decreasedMonthlySavings)}
+                            accentColor={colors.warning}
+                            subtitle="After EMI"
+                        />
+                    ) : null}
                 </View>
             ) : null}
-            {decision.model ? (
-                <Text style={styles.summaryMeta}>Model: {decision.model}</Text>
-            ) : null}
+
+            {/* AI Insight */}
+            <InsightCard decision={decision} />
         </View>
     );
 }
 
+/* ═══════════ MAIN CALC SCREEN ═══════════ */
 export function CalcScreen({ authResult, onGoHome }) {
     const [asOfDate, setAsOfDate] = useState("");
     const [purchaseAmount, setPurchaseAmount] = useState("");
     const [emiAmount, setEmiAmount] = useState("");
     const [emiTenureMonths, setEmiTenureMonths] = useState("");
+
+    const [expandedCard, setExpandedCard] = useState(null);
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -88,8 +203,6 @@ export function CalcScreen({ authResult, onGoHome }) {
         }
     }
 
-    const signedInAs = authResult?.user?.fullName || authResult?.user?.username || authResult?.userId;
-
     return (
         <KeyboardAvoidingView
             style={{ flex: 1 }}
@@ -102,206 +215,256 @@ export function CalcScreen({ authResult, onGoHome }) {
                 keyboardDismissMode="on-drag"
                 contentInsetAdjustmentBehavior="always"
             >
-                <View style={styles.headerCard}>
-                    <Text style={sharedStyles.title}>Calculations</Text>
-                    <Text style={sharedStyles.hint}>
-                        Signed in as {signedInAs}. Optional as-of date uses YYYY-MM-DD.
+                {/* ── Header ── */}
+                <View style={styles.header}>
+                    <Text style={styles.title}>Calculations</Text>
+                    <Text style={styles.subtitle}>
+                        Analyze your financial future
                     </Text>
-
-                    <View style={styles.topActions}>
-                        <Pressable style={sharedStyles.secondaryButton} onPress={onGoHome} disabled={loading}>
-                            <Text style={sharedStyles.secondaryButtonText}>Home</Text>
-                        </Pressable>
-                    </View>
                 </View>
 
                 {error ? <Text style={sharedStyles.error}>{error}</Text> : null}
-                {loading ? <Text style={sharedStyles.hint}>Running...</Text> : null}
 
-                <Text style={sharedStyles.sectionTitle}>Common</Text>
-                <TextInput
-                    value={asOfDate}
-                    onChangeText={setAsOfDate}
-                    placeholder="As of date (optional, YYYY-MM-DD)"
-                    autoCapitalize="none"
-                    style={sharedStyles.input}
-                    editable={!loading}
-                    placeholderTextColor="rgba(34, 40, 49, 0.45)"
-                />
+                {/* ── As-of date ── */}
+                <View style={styles.dateFieldWrap}>
+                    <FormField
+                        label="As of Date (optional)"
+                        value={asOfDate}
+                        onChangeText={setAsOfDate}
+                        placeholder="YYYY-MM-DD"
+                        autoCapitalize="none"
+                        editable={!loading}
+                    />
+                </View>
 
-                <Text style={sharedStyles.sectionTitle}>Profile</Text>
-                <Pressable
-                    style={sharedStyles.button}
-                    onPress={() => run(() => calcProfile(commonOptions))}
-                    disabled={loading}
-                >
-                    <Text style={sharedStyles.buttonText}>Calculate profile</Text>
-                </Pressable>
+                {/* ── Feature Cards ── */}
+                <Text style={sharedStyles.sectionTitle}>Analyses</Text>
+                <View style={styles.cardsGap}>
+                    <FeatureCard
+                        icon="📊"
+                        title="Financial Profile"
+                        subtitle="Full snapshot of income, expenses & savings"
+                        onPress={() => run(() => calcProfile(commonOptions))}
+                        disabled={loading}
+                    />
+                    <FeatureCard
+                        icon="🛫"
+                        title="Runway Analysis"
+                        subtitle="How long your savings will last"
+                        onPress={() => run(() => calcRunway(commonOptions))}
+                        disabled={loading}
+                    />
+                    <FeatureCard
+                        icon="💰"
+                        title="Savings Summary"
+                        subtitle="Your current savings position"
+                        onPress={() => run(() => calcSavings(commonOptions))}
+                        disabled={loading}
+                    />
+                </View>
 
-                <Text style={sharedStyles.sectionTitle}>Runway</Text>
-                <Pressable
-                    style={sharedStyles.button}
-                    onPress={() => run(() => calcRunway(commonOptions))}
-                    disabled={loading}
-                >
-                    <Text style={sharedStyles.buttonText}>Calculate runway</Text>
-                </Pressable>
+                <Text style={sharedStyles.sectionTitle}>Scenarios</Text>
+                <View style={styles.cardsGap}>
+                    <FeatureCard
+                        icon="🛒"
+                        title="One-time Purchase"
+                        subtitle="Impact of a single large expense"
+                        onPress={() => {
+                            if (expandedCard === "purchase") {
+                                run(() =>
+                                    calcOneTimePurchase({
+                                        ...commonOptions,
+                                        purchaseAmount: toNumberOrUndefined(purchaseAmount),
+                                    })
+                                );
+                            } else {
+                                setExpandedCard("purchase");
+                            }
+                        }}
+                        disabled={loading}
+                        expanded={expandedCard === "purchase"}
+                    >
+                        <FormField
+                            label="Purchase Amount"
+                            value={purchaseAmount}
+                            onChangeText={setPurchaseAmount}
+                            placeholder="e.g. 50000"
+                            keyboardType="numeric"
+                            editable={!loading}
+                        />
+                        <Pressable
+                            style={({ pressed }) => [
+                                sharedStyles.button,
+                                pressed && { opacity: 0.85 },
+                            ]}
+                            onPress={() =>
+                                run(() =>
+                                    calcOneTimePurchase({
+                                        ...commonOptions,
+                                        purchaseAmount: toNumberOrUndefined(purchaseAmount),
+                                    })
+                                )
+                            }
+                            disabled={loading}
+                        >
+                            <Text style={sharedStyles.buttonText}>
+                                Calculate Impact
+                            </Text>
+                        </Pressable>
+                    </FeatureCard>
 
-                <Text style={sharedStyles.sectionTitle}>Savings</Text>
-                <Pressable
-                    style={sharedStyles.button}
-                    onPress={() => run(() => calcSavings(commonOptions))}
-                    disabled={loading}
-                >
-                    <Text style={sharedStyles.buttonText}>Calculate savings</Text>
-                </Pressable>
+                    <FeatureCard
+                        icon="📅"
+                        title="EMI Purchase"
+                        subtitle="Spread payments over months"
+                        onPress={() => {
+                            if (expandedCard === "emi") {
+                                run(() =>
+                                    calcEmiPurchase({
+                                        ...commonOptions,
+                                        emiAmount: toNumberOrUndefined(emiAmount),
+                                        emiTenureMonths: toNumberOrUndefined(emiTenureMonths),
+                                    })
+                                );
+                            } else {
+                                setExpandedCard("emi");
+                            }
+                        }}
+                        disabled={loading}
+                        expanded={expandedCard === "emi"}
+                    >
+                        <FormField
+                            label="EMI Amount (monthly)"
+                            value={emiAmount}
+                            onChangeText={setEmiAmount}
+                            placeholder="e.g. 5000"
+                            keyboardType="numeric"
+                            editable={!loading}
+                        />
+                        <FormField
+                            label="Tenure (months)"
+                            value={emiTenureMonths}
+                            onChangeText={setEmiTenureMonths}
+                            placeholder="e.g. 12"
+                            keyboardType="numeric"
+                            editable={!loading}
+                        />
+                        <Pressable
+                            style={({ pressed }) => [
+                                sharedStyles.button,
+                                pressed && { opacity: 0.85 },
+                            ]}
+                            onPress={() =>
+                                run(() =>
+                                    calcEmiPurchase({
+                                        ...commonOptions,
+                                        emiAmount: toNumberOrUndefined(emiAmount),
+                                        emiTenureMonths: toNumberOrUndefined(emiTenureMonths),
+                                    })
+                                )
+                            }
+                            disabled={loading}
+                        >
+                            <Text style={sharedStyles.buttonText}>
+                                Calculate EMI Impact
+                            </Text>
+                        </Pressable>
+                    </FeatureCard>
+                </View>
 
-                <Text style={sharedStyles.sectionTitle}>One-time purchase</Text>
-                <TextInput
-                    value={purchaseAmount}
-                    onChangeText={setPurchaseAmount}
-                    placeholder="Purchase amount"
-                    keyboardType="numeric"
-                    style={sharedStyles.input}
-                    editable={!loading}
-                    placeholderTextColor="rgba(34, 40, 49, 0.45)"
-                />
-                <Pressable
-                    style={sharedStyles.button}
-                    onPress={() =>
-                        run(() =>
-                            calcOneTimePurchase({
-                                ...commonOptions,
-                                purchaseAmount: toNumberOrUndefined(purchaseAmount),
-                            })
-                        )
-                    }
-                    disabled={loading}
-                >
-                    <Text style={sharedStyles.buttonText}>Calculate one-time purchase</Text>
-                </Pressable>
+                {/* ── Loading indicator ── */}
+                {loading ? (
+                    <View style={styles.loadingWrap}>
+                        <ActivityIndicator size="large" color={colors.primary} />
+                        <Text style={styles.loadingText}>Analyzing…</Text>
+                    </View>
+                ) : null}
 
-                <Text style={sharedStyles.sectionTitle}>EMI purchase</Text>
-                <TextInput
-                    value={emiAmount}
-                    onChangeText={setEmiAmount}
-                    placeholder="EMI amount (monthly)"
-                    keyboardType="numeric"
-                    style={sharedStyles.input}
-                    editable={!loading}
-                    placeholderTextColor="rgba(34, 40, 49, 0.45)"
-                />
-                <TextInput
-                    value={emiTenureMonths}
-                    onChangeText={setEmiTenureMonths}
-                    placeholder="EMI tenure (months)"
-                    keyboardType="numeric"
-                    style={sharedStyles.input}
-                    editable={!loading}
-                    placeholderTextColor="rgba(34, 40, 49, 0.45)"
-                />
-                <Pressable
-                    style={sharedStyles.button}
-                    onPress={() =>
-                        run(() =>
-                            calcEmiPurchase({
-                                ...commonOptions,
-                                emiAmount: toNumberOrUndefined(emiAmount),
-                                emiTenureMonths: toNumberOrUndefined(emiTenureMonths),
-                            })
-                        )
-                    }
-                    disabled={loading}
-                >
-                    <Text style={sharedStyles.buttonText}>Calculate EMI purchase</Text>
-                </Pressable>
-
-                <Text style={sharedStyles.sectionTitle}>Output</Text>
-                <Text style={sharedStyles.hint}>
-                    The backend may include a Gemini `decision` object.
-                </Text>
-                <DecisionSummary decision={result?.decision} />
-                <JsonOutput data={result} />
+                {/* ── Results ── */}
+                <ResultsPanel data={result} />
             </ScrollView>
         </KeyboardAvoidingView>
     );
 }
 
-const styles = {
+/* ── Main screen styles ── */
+const styles = StyleSheet.create({
     scroll: {
-        backgroundColor: colors.light,
+        backgroundColor: colors.background,
     },
     container: {
-        padding: 20,
-        paddingBottom: 32,
-        gap: 12,
-        backgroundColor: colors.light,
+        padding: spacing.xxl,
+        paddingBottom: spacing.xxxl + 16,
+        gap: spacing.md,
+        backgroundColor: colors.background,
     },
-    headerCard: {
-        borderWidth: 1,
-        borderColor: "rgba(34, 40, 49, 0.12)",
-        borderRadius: 16,
-        padding: 14,
-        gap: 6,
-        backgroundColor: colors.white,
-        ...Platform.select({
-            ios: {
-                shadowColor: "#000",
-                shadowOpacity: 0.05,
-                shadowRadius: 10,
-                shadowOffset: { width: 0, height: 4 },
-            },
-            android: {
-                elevation: 1,
-            },
-        }),
+    header: {
+        gap: spacing.xs,
+        marginBottom: spacing.sm,
     },
-    topActions: {
+    title: {
+        fontSize: fontSizes.xxl + 4,
+        fontWeight: "900",
+        color: colors.textPrimary,
+        letterSpacing: -0.8,
+    },
+    subtitle: {
+        fontSize: fontSizes.sm,
+        color: colors.textTertiary,
+    },
+    dateFieldWrap: {
+        backgroundColor: colors.surface,
+        borderRadius: radii.lg,
+        padding: spacing.lg,
+        ...shadows.subtle,
+    },
+    cardsGap: {
+        gap: spacing.sm,
+    },
+    loadingWrap: {
+        alignItems: "center",
+        paddingVertical: spacing.xxxl,
+        gap: spacing.md,
+    },
+    loadingText: {
+        fontSize: fontSizes.sm,
+        color: colors.textSecondary,
+        fontWeight: "600",
+    },
+});
+
+/* ── Result panel styles ── */
+const resultStyles = StyleSheet.create({
+    container: {
+        gap: spacing.lg,
+        marginTop: spacing.lg,
+    },
+    sectionLabel: {
+        fontSize: fontSizes.xs,
+        fontWeight: "800",
+        color: colors.textTertiary,
+        textTransform: "uppercase",
+        letterSpacing: 2,
+        textAlign: "center",
+    },
+    statsGrid: {
         flexDirection: "row",
-        flexWrap: "wrap",
-        gap: 8,
-        marginTop: 6,
+        gap: spacing.sm,
     },
-    outputBox: {
-        borderWidth: 1,
-        borderColor: "rgba(34, 40, 49, 0.12)",
-        borderRadius: 16,
-        padding: 12,
-        backgroundColor: colors.white,
+    badge: {
+        flexDirection: "row",
+        alignSelf: "center",
+        alignItems: "center",
+        gap: spacing.sm,
+        paddingVertical: spacing.sm,
+        paddingHorizontal: spacing.lg,
+        borderRadius: radii.pill,
     },
-    outputText: {
-        fontFamily: "monospace",
-        fontSize: 12,
-        color: colors.dark,
-    },
-    summaryBox: {
-        borderWidth: 1,
-        borderColor: "rgba(34, 40, 49, 0.12)",
-        borderRadius: 16,
-        padding: 12,
-        backgroundColor: colors.white,
-        gap: 6,
-    },
-    summaryTitle: {
+    badgeIcon: {
         fontSize: 16,
-        fontWeight: "700",
-        color: colors.dark,
     },
-    summaryText: {
-        color: colors.dark,
-        lineHeight: 20,
+    badgeText: {
+        fontSize: fontSizes.md,
+        fontWeight: "800",
     },
-    summaryMeta: {
-        color: "rgba(34, 40, 49, 0.72)",
-        fontSize: 12,
-        marginTop: 4,
-    },
-    keyPoints: {
-        marginTop: 4,
-        gap: 2,
-    },
-    keyPointText: {
-        color: colors.dark,
-        lineHeight: 20,
-    },
-};
+});
