@@ -30,8 +30,10 @@ export function LoginScreen({ onGoToRegister, onAuthSuccess, authResult }) {
                 identifier: identifier.trim(),
                 password,
             });
+            // console.log(result);
             onAuthSuccess?.(result);
         } catch (e) {
+            // console.log(e);
             setError(e?.message || "REQUEST_FAILED");
         } finally {
             setLoading(false);
