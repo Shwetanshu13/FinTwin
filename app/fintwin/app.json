@@ -7,7 +7,7 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
-      "splash": {
+    "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#EEEEEE"
@@ -20,13 +20,18 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#EEEEEE"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "newArchEnabled": false
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": [
-      "expo-secure-store"
-    ]
+    "plugins": ["expo-secure-store", "expo-font"],
+    "extra": {
+      "eas": {
+        "projectId": "faa5515b-6e2d-4e48-ac4d-c0a58430af4f"
+      }
+    },
+    "owner": "shwetanshusinha"
   }
 }
