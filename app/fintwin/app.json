@@ -21,12 +21,16 @@
         "backgroundColor": "#EEEEEE"
       },
       "edgeToEdgeEnabled": true,
-      "newArchEnabled": false
+      "newArchEnabled": false,
+      "package": "com.shwetanshusinha.fintwin"
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": ["expo-secure-store", "expo-font"],
+    "plugins": [
+      "expo-secure-store",
+      "expo-font"
+    ],
     "extra": {
       "eas": {
         "projectId": "faa5515b-6e2d-4e48-ac4d-c0a58430af4f"
